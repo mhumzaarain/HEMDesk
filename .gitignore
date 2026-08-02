@@ -24,4 +24,4 @@ bin/
 
 # Agent workspaces
 .superpowers/
-superpowers/
+/superpowers/
