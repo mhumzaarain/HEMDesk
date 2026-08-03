@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
@@ -8,7 +10,7 @@ from django.views.decorators.http import require_POST
 
 from apps.accounts.models import Roles
 from apps.core.exceptions import DomainError
-from apps.equipment.models import Equipment
+from apps.equipment.models import Department, Equipment, EquipmentStatus
 
 from . import services
 from .forms import (
@@ -19,7 +21,13 @@ from .forms import (
     PPMScheduleForm,
     RemarkForm,
 )
-from .models import Complaint, ComplaintStatus, PPMSchedule, WorkOrder
+from .models import (
+    PPM_DUE_SOON_DAYS,
+    Complaint,
+    ComplaintStatus,
+    PPMSchedule,
+    WorkOrder,
+)
 
 ENGINEER_ROLES = (Roles.ENGINEER, Roles.ADMIN)
 
@@ -328,4 +336,38 @@ def ppm_complete(request, schedule_pk):
         request,
         "maintenance/ppm_complete.html",
         {"schedule": schedule, "form": form},
+    )
+
+
+@login_required
+def ppm_due_list(request):
+    _require_engineer(request.user)
+    today = timezone.localdate()
+    qs = (
+        PPMSchedule.objects.filter(active=True)
+        .exclude(equipment__status=EquipmentStatus.CONDEMNED)
+        .select_related("equipment__department")
+        .order_by("next_due")
+    )
+    selected_department = request.GET.get("department", "")
+    if selected_department:
+        qs = qs.filter(equipment__department_id=selected_department)
+    unscheduled_count = (
+        Equipment.objects.exclude(status=EquipmentStatus.CONDEMNED)
+        .filter(Q(ppm_schedule__isnull=True) | Q(ppm_schedule__active=False))
+        .count()
+    )
+    return render(
+        request,
+        "maintenance/ppm_due_list.html",
+        {
+            "overdue": qs.filter(next_due__lt=today),
+            "due_soon": qs.filter(
+                next_due__gte=today,
+                next_due__lte=today + timedelta(days=PPM_DUE_SOON_DAYS),
+            ),
+            "departments": Department.objects.all(),
+            "selected_department": selected_department,
+            "unscheduled_count": unscheduled_count,
+        },
     )

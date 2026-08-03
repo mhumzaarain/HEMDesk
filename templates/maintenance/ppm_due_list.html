@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}PPM due{% endblock %}
+{% block page_title %}PPM{% endblock %}
+{% block content %}
+<div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+  <div>
+    <h1 class="text-2xl font-bold">Planned Preventive Maintenance</h1>
+    <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+      Overdue and upcoming PPMs (next 30 days).
+      {% if unscheduled_count %}{{ unscheduled_count }} device{{ unscheduled_count|pluralize }} without an active PPM schedule.{% endif %}
+    </p>
+  </div>
+  <form method="get" class="flex items-center gap-2 text-sm">
+    <select name="department" class="rounded border border-slate-300 px-2 py-1.5">
+      <option value="">All departments</option>
+      {% for d in departments %}
+      <option value="{{ d.pk }}" {% if selected_department == d.pk|stringformat:"s" %}selected{% endif %}>{{ d.name }}</option>
+      {% endfor %}
+    </select>
+    <button class="btn-ghost btn-sm">Filter</button>
+  </form>
+</div>
+<div class="card p-5">
+  <h2 class="mb-3 font-semibold">Overdue <span class="badge-danger">{{ overdue|length }}</span></h2>
+  <div class="space-y-3">
+    {% for s in overdue %}
+    <div class="flex flex-wrap items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm dark:border-red-500/30 dark:bg-red-500/10">
+      <a class="link" href="{% url 'equipment_detail' s.equipment_id %}">{{ s.equipment }}</a>
+      <span class="text-slate-500 dark:text-slate-400">{{ s.equipment.department }}</span>
+      <span class="badge-muted">{{ s.get_interval_display }}</span>
+      <span class="ml-auto font-medium text-red-700 dark:text-red-300">due {{ s.next_due }}</span>
+      <a href="{% url 'ppm_complete' s.pk %}" class="btn-warn btn-sm">Record PPM</a>
+    </div>
+    {% empty %}<p class="text-sm text-slate-500 dark:text-slate-400">Nothing overdue. 🎉</p>{% endfor %}
+  </div>
+</div>
+<div class="card mt-6 p-5">
+  <h2 class="mb-3 font-semibold">Due soon <span class="badge-repair">{{ due_soon|length }}</span></h2>
+  <div class="space-y-3">
+    {% for s in due_soon %}
+    <div class="flex flex-wrap items-center gap-2 rounded-lg border border-slate-100 px-4 py-3 text-sm dark:border-slate-800">
+      <a class="link" href="{% url 'equipment_detail' s.equipment_id %}">{{ s.equipment }}</a>
+      <span class="text-slate-500 dark:text-slate-400">{{ s.equipment.department }}</span>
+      <span class="badge-muted">{{ s.get_interval_display }}</span>
+      <span class="ml-auto text-slate-500 dark:text-slate-400">due {{ s.next_due }}</span>
+      <a href="{% url 'ppm_complete' s.pk %}" class="btn-warn btn-sm">Record PPM</a>
+    </div>
+    {% empty %}<p class="text-sm text-slate-500 dark:text-slate-400">Nothing due in the next 30 days.</p>{% endfor %}
+  </div>
+</div>
+{% endblock %}

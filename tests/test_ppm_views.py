@@ -139,3 +139,61 @@ class TestPPMCompleteView:
         client.force_login(staff_user)
         resp = client.get(reverse("ppm_complete", args=[schedule.pk]))
         assert resp.status_code == 403
+
+
+class TestDueListView:
+    @pytest.fixture
+    def three_schedules(self, make_equipment, engineer, department2):
+        today = timezone.localdate()
+        overdue_eq = make_equipment(serial_number="SN-PPM-1")
+        soon_eq = make_equipment(serial_number="SN-PPM-2", department=department2)
+        later_eq = make_equipment(serial_number="SN-PPM-3")
+        s1 = services.set_ppm_schedule(
+            overdue_eq, engineer, PPMInterval.MONTHLY, today - timedelta(days=5)
+        )
+        s2 = services.set_ppm_schedule(
+            soon_eq, engineer, PPMInterval.MONTHLY, today + timedelta(days=10)
+        )
+        s3 = services.set_ppm_schedule(
+            later_eq, engineer, PPMInterval.ANNUAL, today + timedelta(days=200)
+        )
+        return s1, s2, s3
+
+    def test_buckets(self, client, engineer, three_schedules):
+        client.force_login(engineer)
+        resp = client.get(reverse("ppm_due_list"))
+        assert resp.status_code == 200
+        overdue = [s.pk for s in resp.context["overdue"]]
+        due_soon = [s.pk for s in resp.context["due_soon"]]
+        s1, s2, s3 = three_schedules
+        assert overdue == [s1.pk]
+        assert due_soon == [s2.pk]
+        assert s3.pk not in overdue + due_soon
+
+    def test_department_filter(self, client, engineer, three_schedules, department2):
+        client.force_login(engineer)
+        resp = client.get(
+            reverse("ppm_due_list"), {"department": str(department2.pk)}
+        )
+        s1, s2, s3 = three_schedules
+        assert [s.pk for s in resp.context["due_soon"]] == [s2.pk]
+        assert list(resp.context["overdue"]) == []
+
+    def test_inactive_schedules_hidden(self, client, engineer, three_schedules):
+        s1, _, _ = three_schedules
+        services.set_ppm_schedule(
+            s1.equipment, engineer, s1.interval, s1.next_due, active=False
+        )
+        client.force_login(engineer)
+        resp = client.get(reverse("ppm_due_list"))
+        assert list(resp.context["overdue"]) == []
+
+    def test_unscheduled_count(self, client, engineer, three_schedules, equipment):
+        # `equipment` fixture device has no schedule
+        client.force_login(engineer)
+        resp = client.get(reverse("ppm_due_list"))
+        assert resp.context["unscheduled_count"] == 1
+
+    def test_staff_blocked(self, client, staff_user):
+        client.force_login(staff_user)
+        assert client.get(reverse("ppm_due_list")).status_code == 403
