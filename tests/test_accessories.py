@@ -5,7 +5,12 @@ from django.db.utils import IntegrityError
 from apps.core.exceptions import AccessoryStateError
 from apps.core.models import AuditLog
 from apps.equipment import services
-from apps.equipment.models import Accessory, AccessoryStatus, AccessoryType
+from apps.equipment.models import (
+    Accessory,
+    AccessoryStatus,
+    AccessoryType,
+    EquipmentStatus,
+)
 
 pytestmark = pytest.mark.django_db
 
@@ -95,3 +100,79 @@ def test_stock_cannot_go_negative(accessory_type, engineer):
 def test_zero_stock_delta_rejected(accessory_type, engineer):
     with pytest.raises(AccessoryStateError):
         services.adjust_stock(accessory_type, engineer, 0, "noop")
+
+
+def test_staff_cannot_attach(accessory_type, equipment, staff_user):
+    with pytest.raises(PermissionDenied):
+        services.attach_accessory(
+            equipment, staff_user, accessory_type, from_stock=False
+        )
+
+
+def test_attach_from_stock_decrements(accessory_type, equipment, engineer):
+    services.adjust_stock(accessory_type, engineer, 2, "Initial stock")
+    accessory = services.attach_accessory(
+        equipment, engineer, accessory_type, from_stock=True
+    )
+    accessory_type.refresh_from_db()
+    assert accessory_type.stock_qty == 1
+    assert accessory.equipment == equipment
+    assert AuditLog.objects.filter(verb="accessory.attached").exists()
+
+
+def test_attach_refused_when_stock_empty(accessory_type, equipment, engineer):
+    with pytest.raises(AccessoryStateError):
+        services.attach_accessory(
+            equipment, engineer, accessory_type, from_stock=True
+        )
+    assert equipment.accessories.count() == 0
+
+
+def test_attach_without_stock_keeps_counter(accessory_type, equipment, engineer):
+    services.attach_accessory(equipment, engineer, accessory_type, from_stock=False)
+    accessory_type.refresh_from_db()
+    assert accessory_type.stock_qty == 0
+    assert equipment.accessories.count() == 1
+
+
+def test_attach_refused_on_condemned_equipment(
+    accessory_type, make_equipment, engineer
+):
+    condemned = make_equipment(
+        serial_number="SN-0009", status=EquipmentStatus.CONDEMNED
+    )
+    with pytest.raises(AccessoryStateError):
+        services.attach_accessory(
+            condemned, engineer, accessory_type, from_stock=False
+        )
+
+
+def test_update_accessory_diff_audited(fitted_accessory, engineer):
+    services.update_accessory(
+        fitted_accessory, engineer, status=AccessoryStatus.FAULTY, notes="No signal."
+    )
+    fitted_accessory.refresh_from_db()
+    assert fitted_accessory.status == AccessoryStatus.FAULTY
+    entry = AuditLog.objects.get(verb="accessory.updated")
+    assert entry.changes["status"]["new"] == "faulty"
+
+
+def test_condemn_accessory_stamps_and_locks(fitted_accessory, engineer):
+    services.condemn_accessory(fitted_accessory, engineer, "Cable snapped")
+    fitted_accessory.refresh_from_db()
+    assert fitted_accessory.status == AccessoryStatus.CONDEMNED
+    assert fitted_accessory.condemned_at is not None
+    assert AuditLog.objects.filter(verb="accessory.condemned").exists()
+    with pytest.raises(AccessoryStateError):
+        services.update_accessory(fitted_accessory, engineer, notes="too late")
+    with pytest.raises(AccessoryStateError):
+        services.condemn_accessory(fitted_accessory, engineer, "again")
+
+
+def test_update_refused_on_condemned_equipment(
+    fitted_accessory, equipment, engineer
+):
+    equipment.status = EquipmentStatus.CONDEMNED
+    equipment.save(update_fields=["status"])
+    with pytest.raises(AccessoryStateError):
+        services.update_accessory(fitted_accessory, engineer, notes="x")
