@@ -77,7 +77,11 @@ def test_adjust_stock_add_and_remove(accessory_type, engineer):
     services.adjust_stock(accessory_type, engineer, -2, "Issued to ICU")
     accessory_type.refresh_from_db()
     assert accessory_type.stock_qty == 3
-    entry = AuditLog.objects.filter(verb="accessory_type.stock_adjusted").last()
+    entry = (
+        AuditLog.objects.filter(verb="accessory_type.stock_adjusted")
+        .order_by("created_at")
+        .last()
+    )
     assert entry.changes == {"delta": -2, "reason": "Issued to ICU", "stock_qty": 3}
 
 
