@@ -19,4 +19,24 @@ urlpatterns = [
         views.EquipmentImportConfirmView.as_view(),
         name="equipment_import_confirm",
     ),
+    path(
+        "accessories/",
+        views.AccessoryTypeListView.as_view(),
+        name="accessory_type_list",
+    ),
+    path(
+        "accessories/types/new/",
+        views.AccessoryTypeCreateView.as_view(),
+        name="accessory_type_create",
+    ),
+    path(
+        "accessories/types/<int:pk>/edit/",
+        views.AccessoryTypeEditView.as_view(),
+        name="accessory_type_edit",
+    ),
+    path(
+        "accessories/types/<int:pk>/stock/",
+        views.AccessoryStockAdjustView.as_view(),
+        name="accessory_stock_adjust",
+    ),
 ]

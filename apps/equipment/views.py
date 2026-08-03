@@ -1,7 +1,8 @@
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.views.generic import DetailView, ListView, View
 
 from apps.accounts.mixins import RoleRequiredMixin
@@ -9,8 +10,8 @@ from apps.accounts.models import Roles
 from apps.core.exceptions import DomainError
 
 from . import importer, services
-from .forms import CondemnForm, EquipmentForm
-from .models import Equipment, EquipmentStatus
+from .forms import AccessoryTypeForm, CondemnForm, EquipmentForm, StockAdjustForm
+from .models import AccessoryStatus, AccessoryType, Equipment, EquipmentStatus
 
 ENGINEER_ROLES = (Roles.ENGINEER, Roles.ADMIN)
 SESSION_KEY = "equipment_import"
@@ -228,3 +229,123 @@ class EquipmentImportConfirmView(RoleRequiredMixin, View):
             )
             messages.warning(request, f"Skipped — {details}")
         return redirect("equipment_list")
+
+
+class AccessoryTypeListView(RoleRequiredMixin, ListView):
+    allowed_roles = ENGINEER_ROLES
+    template_name = "equipment/accessory_type_list.html"
+
+    def get_queryset(self):
+        return AccessoryType.objects.annotate(
+            fitted_count=Count(
+                "units", filter=~Q(units__status=AccessoryStatus.CONDEMNED)
+            )
+        )
+
+
+class AccessoryTypeCreateView(RoleRequiredMixin, View):
+    allowed_roles = ENGINEER_ROLES
+
+    def get(self, request):
+        return render(
+            request,
+            "equipment/accessory_form.html",
+            {
+                "form": AccessoryTypeForm(),
+                "form_title": "Add accessory type",
+                "form_subtitle": "Define a catalog entry once; reuse it everywhere.",
+                "cancel_url": reverse("accessory_type_list"),
+            },
+        )
+
+    def post(self, request):
+        form = AccessoryTypeForm(request.POST)
+        if not form.is_valid():
+            return render(
+                request,
+                "equipment/accessory_form.html",
+                {
+                    "form": form,
+                    "form_title": "Add accessory type",
+                    "form_subtitle": (
+                        "Define a catalog entry once; reuse it everywhere."
+                    ),
+                    "cancel_url": reverse("accessory_type_list"),
+                },
+            )
+        services.create_accessory_type(request.user, **form.cleaned_data)
+        messages.success(request, "Accessory type added.")
+        return redirect("accessory_type_list")
+
+
+class AccessoryTypeEditView(RoleRequiredMixin, View):
+    allowed_roles = ENGINEER_ROLES
+
+    def _render(self, request, form, accessory_type):
+        return render(
+            request,
+            "equipment/accessory_form.html",
+            {
+                "form": form,
+                "form_title": f"Edit {accessory_type.name}",
+                "form_subtitle": accessory_type.equipment_name,
+                "cancel_url": reverse("accessory_type_list"),
+            },
+        )
+
+    def get(self, request, pk):
+        accessory_type = get_object_or_404(AccessoryType, pk=pk)
+        return self._render(
+            request, AccessoryTypeForm(instance=accessory_type), accessory_type
+        )
+
+    def post(self, request, pk):
+        accessory_type = get_object_or_404(AccessoryType, pk=pk)
+        form = AccessoryTypeForm(request.POST, instance=accessory_type)
+        if not form.is_valid():
+            return self._render(request, form, accessory_type)
+        fresh = AccessoryType.objects.get(pk=pk)
+        services.update_accessory_type(fresh, request.user, **form.cleaned_data)
+        messages.success(request, "Accessory type updated.")
+        return redirect("accessory_type_list")
+
+
+class AccessoryStockAdjustView(RoleRequiredMixin, View):
+    allowed_roles = ENGINEER_ROLES
+
+    def _render(self, request, form, accessory_type):
+        return render(
+            request,
+            "equipment/accessory_form.html",
+            {
+                "form": form,
+                "form_title": f"Adjust stock — {accessory_type.name}",
+                "form_subtitle": (
+                    f"{accessory_type.equipment_name} · currently in store: "
+                    f"{accessory_type.stock_qty}"
+                ),
+                "cancel_url": reverse("accessory_type_list"),
+            },
+        )
+
+    def get(self, request, pk):
+        accessory_type = get_object_or_404(AccessoryType, pk=pk)
+        return self._render(request, StockAdjustForm(), accessory_type)
+
+    def post(self, request, pk):
+        accessory_type = get_object_or_404(AccessoryType, pk=pk)
+        form = StockAdjustForm(request.POST)
+        if not form.is_valid():
+            return self._render(request, form, accessory_type)
+        delta = form.cleaned_data["quantity"]
+        if form.cleaned_data["action"] == "remove":
+            delta = -delta
+        try:
+            services.adjust_stock(
+                accessory_type, request.user, delta, form.cleaned_data["reason"]
+            )
+        except DomainError as exc:
+            messages.error(request, str(exc))
+        else:
+            messages.success(request, "Stock updated.")
+        return redirect("accessory_type_list")

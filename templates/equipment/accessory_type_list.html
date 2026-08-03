@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Accessories{% endblock %}
+{% block page_title %}Accessories{% endblock %}
+{% block content %}
+<div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+  <div>
+    <h1 class="text-2xl font-bold">Accessory inventory</h1>
+    <p class="mt-0.5 text-sm text-slate-500 dark:text-slate-400">Catalog of accessory types and backup store counts.</p>
+  </div>
+  <a href="{% url 'accessory_type_create' %}" class="btn-primary">Add type</a>
+</div>
+<div class="card p-5">
+  <div class="space-y-3">
+    {% for type in object_list %}
+    <div class="flex flex-wrap items-center gap-2 rounded-lg border border-slate-100 px-4 py-3 text-sm dark:border-slate-800">
+      <span class="font-medium">{{ type.name }}</span>
+      <span class="text-slate-500 dark:text-slate-400">{{ type.equipment_name }}</span>
+      {% if type.stock_qty == 0 %}<span class="badge-danger">In store: 0</span>
+      {% else %}<span class="badge-working">In store: {{ type.stock_qty }}</span>{% endif %}
+      <span class="badge-info">Fitted: {{ type.fitted_count }}</span>
+      {% if type.notes %}<span class="text-slate-500 dark:text-slate-400">"{{ type.notes }}"</span>{% endif %}
+      <span class="ml-auto flex gap-2">
+        <a href="{% url 'accessory_stock_adjust' type.pk %}" class="btn-ghost btn-sm">Adjust stock</a>
+        <a href="{% url 'accessory_type_edit' type.pk %}" class="btn-ghost btn-sm">Edit</a>
+      </span>
+    </div>
+    {% empty %}<p class="text-sm text-slate-500 dark:text-slate-400">No accessory types yet. Add the first one.</p>{% endfor %}
+  </div>
+</div>
+{% endblock %}
