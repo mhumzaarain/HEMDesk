@@ -25,3 +25,4 @@ bin/
 # Agent workspaces
 .superpowers/
 /superpowers/
+docs/superpowers/specs/
