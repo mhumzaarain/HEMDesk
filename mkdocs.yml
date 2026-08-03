@@ -43,3 +43,6 @@ exclude_docs: |
 
 nav:
   - Home: index.md
+  - Getting Started:
+      - Logging in & roles: getting-started/logging-in.md
+      - A tour of the app: getting-started/tour.md
