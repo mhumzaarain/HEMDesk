@@ -1,9 +1,12 @@
 import pytest
 from django.core.management import call_command
+from django.utils import timezone
 
 from apps.core.models import AuditLog
 from apps.equipment.models import (
     Accessory,
+    AccessoryEvent,
+    AccessoryEventKind,
     AccessoryStatus,
     AccessoryType,
     Equipment,
@@ -22,7 +25,17 @@ def test_seed_demo_builds_world():
     assert Equipment.objects.filter(status=EquipmentStatus.CONDEMNED).count() >= 2
     assert Complaint.objects.count() >= 40
     assert AccessoryType.objects.count() == 6
-    assert not AccessoryType.objects.filter(stock_qty=0).exists()
+    assert AccessoryType.objects.filter(stock_qty=0).exists()
+    assert (
+        AccessoryEvent.objects.filter(kind=AccessoryEventKind.REPLACED).count()
+        >= 4
+    )
+    assert (
+        AccessoryEvent.objects.filter(kind=AccessoryEventKind.REPAIRED).count()
+        >= 2
+    )
+    oldest = AccessoryEvent.objects.order_by("created_at").first()
+    assert (timezone.now() - oldest.created_at).days >= 10
     assert Accessory.objects.count() >= 10
     assert Accessory.objects.filter(status=AccessoryStatus.FAULTY).count() == 1
     assert WorkOrder.objects.filter(status="completed").count() >= 20

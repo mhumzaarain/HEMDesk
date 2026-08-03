@@ -6,6 +6,8 @@ from apps.core.exceptions import AccessoryStateError, InvalidTransition
 
 from .models import (
     Accessory,
+    AccessoryEvent,
+    AccessoryEventKind,
     AccessoryStatus,
     AccessoryType,
     Equipment,
@@ -282,3 +284,103 @@ def condemn_accessory(accessory, actor, reason):
     accessory.save(update_fields=["status", "condemned_at"])
     audit.record(actor, "accessory.condemned", accessory, {"reason": reason})
     return accessory
+
+
+def _require_accessory_on_active_workorder(accessory, work_order):
+    if not work_order.is_active:
+        raise AccessoryStateError(
+            "Accessory work can only be recorded on an active work order."
+        )
+    if accessory.equipment_id != work_order.equipment_id:
+        raise AccessoryStateError(
+            "This accessory belongs to a different equipment."
+        )
+
+
+@transaction.atomic
+def replace_accessory(accessory, actor, work_order, remark, serial_number=""):
+    from django.utils import timezone
+
+    _require_engineer_or_admin(actor)
+    accessory = Accessory.objects.select_for_update().get(pk=accessory.pk)
+    _require_accessory_on_active_workorder(accessory, work_order)
+    if accessory.status == AccessoryStatus.CONDEMNED:
+        raise AccessoryStateError("This accessory is already condemned.")
+    locked_type = AccessoryType.objects.select_for_update().get(
+        pk=accessory.type_id
+    )
+    if locked_type.stock_qty < 1:
+        raise AccessoryStateError(
+            "No backup stock available — restock this type first."
+        )
+    accessory.status = AccessoryStatus.CONDEMNED
+    accessory.condemned_at = timezone.now()
+    accessory.save(update_fields=["status", "condemned_at"])
+    locked_type.stock_qty -= 1
+    locked_type.save(update_fields=["stock_qty"])
+    audit.record(
+        actor,
+        "accessory_type.stock_adjusted",
+        locked_type,
+        {
+            "delta": -1,
+            "reason": f"Replacement on WO #{work_order.pk}",
+            "stock_qty": locked_type.stock_qty,
+        },
+    )
+    new_accessory = Accessory.objects.create(
+        type_id=accessory.type_id,
+        equipment_id=accessory.equipment_id,
+        serial_number=serial_number,
+    )
+    event = AccessoryEvent.objects.create(
+        kind=AccessoryEventKind.REPLACED,
+        work_order=work_order,
+        equipment_id=accessory.equipment_id,
+        accessory_type_id=accessory.type_id,
+        old_accessory=accessory,
+        new_accessory=new_accessory,
+        actor=actor,
+        remark=remark,
+    )
+    audit.record(
+        actor,
+        "accessory.replaced",
+        accessory,
+        {
+            "work_order": work_order.pk,
+            "old": accessory.pk,
+            "new": new_accessory.pk,
+            "remark": remark,
+        },
+    )
+    return event
+
+
+@transaction.atomic
+def repair_accessory(accessory, actor, work_order, remark):
+    _require_engineer_or_admin(actor)
+    accessory = Accessory.objects.select_for_update().get(pk=accessory.pk)
+    _require_accessory_on_active_workorder(accessory, work_order)
+    if accessory.status == AccessoryStatus.CONDEMNED:
+        raise AccessoryStateError("This accessory is condemned.")
+    if accessory.status != AccessoryStatus.FAULTY:
+        raise AccessoryStateError("Only faulty accessories can be repaired.")
+    accessory.status = AccessoryStatus.WORKING
+    accessory.save(update_fields=["status"])
+    event = AccessoryEvent.objects.create(
+        kind=AccessoryEventKind.REPAIRED,
+        work_order=work_order,
+        equipment_id=accessory.equipment_id,
+        accessory_type_id=accessory.type_id,
+        old_accessory=accessory,
+        actor=actor,
+        remark=remark,
+    )
+    audit.record(
+        actor,
+        "accessory.repaired",
+        accessory,
+        {"work_order": work_order.pk, "remark": remark},
+    )
+    return event

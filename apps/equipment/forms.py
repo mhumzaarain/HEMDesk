@@ -52,6 +52,9 @@ class AccessoryTypeForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         for field in self.fields.values():
             field.widget.attrs.setdefault("class", INPUT)
+        self.fields["equipment_name"].widget.attrs.setdefault(
+            "list", "equipment-name-options"
+        )
 
 
 class StockAdjustForm(forms.Form):
@@ -107,3 +110,22 @@ class AccessoryEditForm(forms.ModelForm):
 
 class AccessoryCondemnForm(forms.Form):
     reason = forms.CharField(widget=forms.Textarea(attrs={"rows": 3, "class": INPUT}))
+
+
+class AccessoryReplaceForm(forms.Form):
+    remark = forms.CharField(
+        label="Reason",
+        widget=forms.Textarea(attrs={"rows": 3, "class": INPUT}),
+    )
+    serial_number = forms.CharField(
+        required=False,
+        help_text="Serial of the new unit; leave blank if not serialized.",
+        widget=forms.TextInput(attrs={"class": INPUT}),
+    )
+
+
+class AccessoryRepairForm(forms.Form):
+    remark = forms.CharField(
+        label="What was done",
+        widget=forms.Textarea(attrs={"rows": 3, "class": INPUT}),
+    )

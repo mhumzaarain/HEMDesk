@@ -8,12 +8,15 @@ from django.views.generic import DetailView, ListView, View
 from apps.accounts.mixins import RoleRequiredMixin
 from apps.accounts.models import Roles
 from apps.core.exceptions import DomainError
+from apps.maintenance.models import WorkOrder
 
 from . import importer, services
 from .forms import (
     AccessoryAttachForm,
     AccessoryCondemnForm,
     AccessoryEditForm,
+    AccessoryRepairForm,
+    AccessoryReplaceForm,
     AccessoryTypeForm,
     CondemnForm,
     EquipmentForm,
@@ -21,6 +24,7 @@ from .forms import (
 )
 from .models import (
     Accessory,
+    AccessoryEventKind,
     AccessoryStatus,
     AccessoryType,
     Equipment,
@@ -93,6 +97,14 @@ class EquipmentDetailView(LoginRequiredMixin, DetailView):
         ctx["work_orders"] = eq.work_orders.prefetch_related("remarks", "participants")
         ctx["open_complaints"] = eq.complaints.exclude(status="closed")
         ctx["accessories"] = eq.accessories.select_related("type")
+        replaced_breakdown = list(
+            eq.accessory_events.filter(kind=AccessoryEventKind.REPLACED)
+            .values("accessory_type__name")
+            .annotate(n=Count("id"))
+            .order_by("-n")
+        )
+        ctx["accessory_replaced_total"] = sum(r["n"] for r in replaced_breakdown)
+        ctx["accessory_replaced_breakdown"] = replaced_breakdown
         ctx["can_engineer"] = self.request.user.is_engineer_or_admin
         ctx["completed_repair_count"] = eq.work_orders.filter(
             status="completed"
@@ -246,6 +258,15 @@ class EquipmentImportConfirmView(RoleRequiredMixin, View):
         return redirect("equipment_list")
 
 
+def _equipment_name_options():
+    combos = (
+        Equipment.objects.values_list("name", "manufacturer", "model_number")
+        .distinct()
+        .order_by("name", "manufacturer", "model_number")
+    )
+    return [" ".join(part for part in combo if part) for combo in combos]
+
+
 class AccessoryTypeListView(RoleRequiredMixin, ListView):
     allowed_roles = ENGINEER_ROLES
     template_name = "equipment/accessory_type_list.html"
@@ -256,6 +277,11 @@ class AccessoryTypeListView(RoleRequiredMixin, ListView):
                 "units", filter=~Q(units__status=AccessoryStatus.CONDEMNED)
             )
         )
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["restock"] = AccessoryType.objects.filter(stock_qty=0)
+        return ctx
 
 
 class AccessoryTypeCreateView(RoleRequiredMixin, View):
@@ -270,6 +296,7 @@ class AccessoryTypeCreateView(RoleRequiredMixin, View):
                 "form_title": "Add accessory type",
                 "form_subtitle": "Define a catalog entry once; reuse it everywhere.",
                 "cancel_url": reverse("accessory_type_list"),
+                "equipment_name_options": _equipment_name_options(),
             },
         )
 
@@ -286,6 +313,7 @@ class AccessoryTypeCreateView(RoleRequiredMixin, View):
                         "Define a catalog entry once; reuse it everywhere."
                     ),
                     "cancel_url": reverse("accessory_type_list"),
+                    "equipment_name_options": _equipment_name_options(),
                 },
             )
         services.create_accessory_type(request.user, **form.cleaned_data)
@@ -305,6 +333,7 @@ class AccessoryTypeEditView(RoleRequiredMixin, View):
                 "form_title": f"Edit {accessory_type.name}",
                 "form_subtitle": accessory_type.equipment_name,
                 "cancel_url": reverse("accessory_type_list"),
+                "equipment_name_options": _equipment_name_options(),
             },
         )
 
@@ -485,3 +514,109 @@ class AccessoryCondemnView(RoleRequiredMixin, View):
         else:
             messages.success(request, "Accessory condemned. Its record is preserved.")
         return redirect("equipment_detail", pk=accessory.equipment_id)
+
+
+class AccessoryMarkFaultyView(RoleRequiredMixin, View):
+    allowed_roles = ENGINEER_ROLES
+
+    def post(self, request, pk, wo_pk):
+        accessory = get_object_or_404(Accessory, pk=pk)
+        get_object_or_404(WorkOrder, pk=wo_pk)
+        try:
+            services.update_accessory(
+                accessory, request.user, status=AccessoryStatus.FAULTY
+            )
+        except DomainError as exc:
+            messages.error(request, str(exc))
+        else:
+            messages.success(request, "Accessory marked faulty.")
+        return redirect("workorder_detail", pk=wo_pk)
+
+
+class AccessoryRepairView(RoleRequiredMixin, View):
+    allowed_roles = ENGINEER_ROLES
+
+    def _render(self, request, form, accessory, work_order):
+        return render(
+            request,
+            "equipment/accessory_form.html",
+            {
+                "form": form,
+                "form_title": f"Repair {accessory.type.name}",
+                "form_subtitle": f"WO #{work_order.pk} · {accessory.equipment}",
+                "cancel_url": reverse("workorder_detail", args=[work_order.pk]),
+            },
+        )
+
+    def get(self, request, pk, wo_pk):
+        accessory = get_object_or_404(
+            Accessory.objects.select_related("type", "equipment"), pk=pk
+        )
+        work_order = get_object_or_404(WorkOrder, pk=wo_pk)
+        return self._render(request, AccessoryRepairForm(), accessory, work_order)
+
+    def post(self, request, pk, wo_pk):
+        accessory = get_object_or_404(
+            Accessory.objects.select_related("type", "equipment"), pk=pk
+        )
+        work_order = get_object_or_404(WorkOrder, pk=wo_pk)
+        form = AccessoryRepairForm(request.POST)
+        if not form.is_valid():
+            return self._render(request, form, accessory, work_order)
+        try:
+            services.repair_accessory(
+                accessory, request.user, work_order, form.cleaned_data["remark"]
+            )
+        except DomainError as exc:
+            messages.error(request, str(exc))
+        else:
+            messages.success(request, "Accessory repaired.")
+        return redirect("workorder_detail", pk=wo_pk)
+
+
+class AccessoryReplaceView(RoleRequiredMixin, View):
+    allowed_roles = ENGINEER_ROLES
+
+    def _render(self, request, form, accessory, work_order):
+        return render(
+            request,
+            "equipment/accessory_form.html",
+            {
+                "form": form,
+                "form_title": f"Replace {accessory.type.name}",
+                "form_subtitle": (
+                    f"WO #{work_order.pk} · in store: "
+                    f"{accessory.type.stock_qty}"
+                ),
+                "cancel_url": reverse("workorder_detail", args=[work_order.pk]),
+            },
+        )
+
+    def get(self, request, pk, wo_pk):
+        accessory = get_object_or_404(
+            Accessory.objects.select_related("type", "equipment"), pk=pk
+        )
+        work_order = get_object_or_404(WorkOrder, pk=wo_pk)
+        return self._render(request, AccessoryReplaceForm(), accessory, work_order)
+
+    def post(self, request, pk, wo_pk):
+        accessory = get_object_or_404(
+            Accessory.objects.select_related("type", "equipment"), pk=pk
+        )
+        work_order = get_object_or_404(WorkOrder, pk=wo_pk)
+        form = AccessoryReplaceForm(request.POST)
+        if not form.is_valid():
+            return self._render(request, form, accessory, work_order)
+        try:
+            services.replace_accessory(
+                accessory,
+                request.user,
+                work_order,
+                remark=form.cleaned_data["remark"],
+                serial_number=form.cleaned_data["serial_number"],
+            )
+        except DomainError as exc:
+            messages.error(request, str(exc))
+        else:
+            messages.success(request, "Accessory replaced from backup stock.")
+        return redirect("workorder_detail", pk=wo_pk)

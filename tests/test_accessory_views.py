@@ -199,3 +199,27 @@ def test_nav_shows_accessories_link_to_engineer_only(client, engineer, staff_use
     assert b'href="/equipment/accessories/"' in client.get("/").content
     client.force_login(staff_user)
     assert b'href="/equipment/accessories/"' not in client.get("/").content
+
+
+def test_type_form_suggests_registered_equipment(client, engineer, equipment):
+    client.force_login(engineer)
+    content = client.get(reverse("accessory_type_create")).content.decode()
+    assert 'list="equipment-name-options"' in content
+    assert '<datalist id="equipment-name-options">' in content
+    assert "Ventilator Hamilton C2" in content
+
+
+def test_type_accepts_unlisted_equipment_name(client, engineer):
+    client.force_login(engineer)
+    response = client.post(
+        reverse("accessory_type_create"),
+        {
+            "name": "ECG cable",
+            "equipment_name": "Brand New Device X1",
+            "notes": "",
+        },
+    )
+    assert response.status_code == 302
+    assert AccessoryType.objects.filter(
+        equipment_name="Brand New Device X1"
+    ).exists()

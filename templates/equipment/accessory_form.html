@@ -20,6 +20,11 @@
       {% for error in field.errors %}<p class="mt-1 text-sm text-red-700 dark:text-red-400">{{ error }}</p>{% endfor %}
     </div>
     {% endfor %}
+    {% if equipment_name_options %}
+    <datalist id="equipment-name-options">
+      {% for option in equipment_name_options %}<option value="{{ option }}"></option>{% endfor %}
+    </datalist>
+    {% endif %}
     <div class="flex justify-end gap-2 border-t border-slate-100 pt-4 dark:border-slate-800">
       <a href="{{ cancel_url }}" class="btn-ghost">Cancel</a>
       <button class="btn-primary">Save</button>

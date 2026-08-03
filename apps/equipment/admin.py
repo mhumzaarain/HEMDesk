@@ -1,6 +1,13 @@
 from django.contrib import admin
 
-from .models import Accessory, AccessoryType, Department, Equipment, StatusEvent
+from .models import (
+    Accessory,
+    AccessoryEvent,
+    AccessoryType,
+    Department,
+    Equipment,
+    StatusEvent,
+)
 
 
 @admin.register(Department)
@@ -62,6 +69,28 @@ class AccessoryAdmin(admin.ModelAdmin):
         "equipment__name",
     )
     readonly_fields = ("status", "condemned_at")
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(AccessoryEvent)
+class AccessoryEventAdmin(admin.ModelAdmin):
+    list_display = (
+        "created_at",
+        "kind",
+        "accessory_type",
+        "equipment",
+        "work_order",
+        "actor",
+    )
+    readonly_fields = [f.name for f in AccessoryEvent._meta.fields]
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
 
     def has_delete_permission(self, request, obj=None):
         return False

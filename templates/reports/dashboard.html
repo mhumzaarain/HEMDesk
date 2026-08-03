@@ -144,6 +144,29 @@
     {% endif %}
     <a class="link mt-3 inline-block text-sm" href="{% url 'ppm_due_list' %}">Open PPM due list →</a>
   </div>
+  <div class="card p-5">
+    <h2 class="mb-3 font-semibold">Accessory replacements <span class="text-sm font-normal text-slate-500 dark:text-slate-400">· last 90 days</span></h2>
+    {% if acc_repl_equipment %}
+    <p class="mb-1 text-xs font-medium text-slate-500 dark:text-slate-400">Top equipment</p>
+    <ul class="mb-3 space-y-1 text-sm">
+      {% for row in acc_repl_equipment %}
+      <li class="flex justify-between gap-2">
+        <a class="link" href="{% url 'equipment_detail' row.equipment_id %}">{{ row.label }}</a>
+        <span class="badge-info">{{ row.n }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+    <p class="mb-1 text-xs font-medium text-slate-500 dark:text-slate-400">Top accessory types</p>
+    <ul class="space-y-1 text-sm">
+      {% for row in acc_repl_types %}
+      <li class="flex justify-between gap-2"><span>{{ row.label }}</span><span class="badge-info">{{ row.n }}</span></li>
+      {% endfor %}
+    </ul>
+    <a class="link mt-3 inline-block text-sm" href="{% url 'accessory_type_list' %}">Open accessory inventory →</a>
+    {% else %}
+    <p class="text-sm text-slate-500 dark:text-slate-400">No replacements recorded.</p>
+    {% endif %}
+  </div>
 </div>
 {{ downtime_json|json_script:"downtime-data" }}
 {{ complaints_json|json_script:"complaints-data" }}
