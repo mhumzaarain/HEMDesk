@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Department, Equipment, StatusEvent
+from .models import Accessory, AccessoryType, Department, Equipment, StatusEvent
 
 
 @admin.register(Department)
@@ -36,6 +36,32 @@ class StatusEventAdmin(admin.ModelAdmin):
 
     def has_change_permission(self, request, obj=None):
         return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(AccessoryType)
+class AccessoryTypeAdmin(admin.ModelAdmin):
+    list_display = ("name", "equipment_name", "stock_qty")
+    search_fields = ("name", "equipment_name")
+    readonly_fields = ("stock_qty",)
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(Accessory)
+class AccessoryAdmin(admin.ModelAdmin):
+    list_display = ("type", "equipment", "status", "serial_number")
+    list_filter = ("status",)
+    search_fields = (
+        "type__name",
+        "serial_number",
+        "equipment__serial_number",
+        "equipment__name",
+    )
+    readonly_fields = ("status", "condemned_at")
 
     def has_delete_permission(self, request, obj=None):
         return False

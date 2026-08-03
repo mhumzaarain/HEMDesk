@@ -192,3 +192,10 @@ def test_engineer_condemns_accessory_via_view(client, engineer, fitted_accessory
     fitted_accessory.refresh_from_db()
     assert fitted_accessory.status == AccessoryStatus.CONDEMNED
     assert fitted_accessory.condemned_at is not None
+
+
+def test_nav_shows_accessories_link_to_engineer_only(client, engineer, staff_user):
+    client.force_login(engineer)
+    assert b'href="/equipment/accessories/"' in client.get("/").content
+    client.force_login(staff_user)
+    assert b'href="/equipment/accessories/"' not in client.get("/").content
