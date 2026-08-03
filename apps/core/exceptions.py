@@ -12,3 +12,7 @@ class ComplaintNotAllowed(DomainError):
 
 class WorkOrderStateError(DomainError):
     pass
+
+
+class AccessoryStateError(DomainError):
+    pass

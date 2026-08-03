@@ -2,9 +2,14 @@ from django.core.exceptions import PermissionDenied
 from django.db import transaction
 
 from apps.core import audit
-from apps.core.exceptions import InvalidTransition
+from apps.core.exceptions import AccessoryStateError, InvalidTransition
 
-from .models import Equipment, EquipmentStatus, StatusEvent
+from .models import (
+    AccessoryType,
+    Equipment,
+    EquipmentStatus,
+    StatusEvent,
+)
 
 ALLOWED_TRANSITIONS = {
     EquipmentStatus.WORKING: {EquipmentStatus.IN_REPAIR, EquipmentStatus.CONDEMNED},
@@ -135,3 +140,52 @@ def update_equipment(equipment, actor, **fields):
         equipment.save(update_fields=list(changes.keys()))
         audit.record(actor, "equipment.updated", equipment, changes)
     return equipment
+
+
+@transaction.atomic
+def create_accessory_type(actor, **fields):
+    _require_engineer_or_admin(actor)
+    accessory_type = AccessoryType.objects.create(**fields)
+    audit.record(
+        actor,
+        "accessory_type.created",
+        accessory_type,
+        {"name": accessory_type.name, "equipment_name": accessory_type.equipment_name},
+    )
+    return accessory_type
+
+
+@transaction.atomic
+def update_accessory_type(accessory_type, actor, **fields):
+    """Catalog fields only — stock_qty is changed exclusively by adjust_stock."""
+    _require_engineer_or_admin(actor)
+    changes = {}
+    for name, value in fields.items():
+        old = getattr(accessory_type, name)
+        if old != value:
+            changes[name] = {"old": str(old), "new": str(value)}
+            setattr(accessory_type, name, value)
+    if changes:
+        accessory_type.save(update_fields=list(changes.keys()))
+        audit.record(actor, "accessory_type.updated", accessory_type, changes)
+    return accessory_type
+
+
+@transaction.atomic
+def adjust_stock(accessory_type, actor, delta, reason):
+    _require_engineer_or_admin(actor)
+    if delta == 0:
+        raise AccessoryStateError("Stock adjustment cannot be zero.")
+    locked = AccessoryType.objects.select_for_update().get(pk=accessory_type.pk)
+    new_qty = locked.stock_qty + delta
+    if new_qty < 0:
+        raise AccessoryStateError("Stock cannot go below zero.")
+    locked.stock_qty = new_qty
+    locked.save(update_fields=["stock_qty"])
+    audit.record(
+        actor,
+        "accessory_type.stock_adjusted",
+        locked,
+        {"delta": delta, "reason": reason, "stock_qty": new_qty},
+    )
+    return locked
