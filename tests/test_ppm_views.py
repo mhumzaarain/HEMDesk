@@ -179,6 +179,14 @@ class TestDueListView:
         assert [s.pk for s in resp.context["due_soon"]] == [s2.pk]
         assert list(resp.context["overdue"]) == []
 
+    def test_non_numeric_department_ignored(self, client, engineer, three_schedules):
+        client.force_login(engineer)
+        resp = client.get(reverse("ppm_due_list"), {"department": "abc"})
+        assert resp.status_code == 200
+        s1, s2, s3 = three_schedules
+        assert [s.pk for s in resp.context["overdue"]] == [s1.pk]
+        assert [s.pk for s in resp.context["due_soon"]] == [s2.pk]
+
     def test_inactive_schedules_hidden(self, client, engineer, three_schedules):
         s1, _, _ = three_schedules
         services.set_ppm_schedule(

@@ -303,6 +303,8 @@ def complete_ppm(
             f"This equipment is under repair (WO #{active_wo.pk}) — "
             "complete or cancel it first."
         )
+    for engineer in engineers:
+        _require_engineer_or_admin(engineer)
     work_order = open_work_order(equipment, actor) if open_wo else None
     record = PPMRecord.objects.create(
         schedule=schedule,

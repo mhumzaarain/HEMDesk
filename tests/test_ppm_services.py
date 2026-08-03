@@ -161,3 +161,14 @@ class TestCompletePPM:
             schedule, engineer, PPMOutcome.FAILED, timezone.localdate()
         )
         assert record.work_order is None
+
+    def test_rejects_non_engineer_extra_engineer(self, schedule, engineer, staff_user):
+        with pytest.raises(PermissionDenied):
+            services.complete_ppm(
+                schedule,
+                engineer,
+                PPMOutcome.PASSED,
+                timezone.localdate(),
+                engineers=[staff_user],
+            )
+        assert PPMRecord.objects.count() == 0

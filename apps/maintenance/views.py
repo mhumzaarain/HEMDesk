@@ -350,7 +350,7 @@ def ppm_due_list(request):
         .order_by("next_due")
     )
     selected_department = request.GET.get("department", "")
-    if selected_department:
+    if selected_department.isdigit():
         qs = qs.filter(equipment__department_id=selected_department)
     unscheduled_count = (
         Equipment.objects.exclude(status=EquipmentStatus.CONDEMNED)
