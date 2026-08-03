@@ -69,14 +69,17 @@ A small `add_months(date, n)` helper with month-end clamping
 ### `complete_ppm(schedule, actor, outcome, performed_at, engineers=(), remarks="", open_wo=False) -> PPMRecord`
 
 - Validates: schedule active, equipment not condemned, `performed_at` not in the
-  future, outcome valid.
+  future, outcome valid, **no active work order on the device** — if one exists,
+  raises `WorkOrderStateError` naming it ("This equipment is under repair
+  (WO #12) — complete or cancel it first"). The schedule stays due; the PPM is
+  recorded after the repair closes. This also makes the
+  failed-PPM-while-a-WO-already-exists edge case unreachable.
 - Creates the `PPMRecord`, snapshotting `due_date = schedule.next_due`.
 - Advances `schedule.next_due = add_months(performed_at, interval_months)`.
 - `open_wo=True` requires `outcome=failed` (otherwise `ValueError`): calls the existing
   `open_work_order(equipment, actor)` in the same transaction and links the
-  record before saving. If the device already has an active work order the
-  existing `WorkOrderStateError` propagates; the view surfaces it and nothing
-  is written.
+  record before saving. (The no-active-work-order validation above guarantees
+  this call cannot hit the one-active-work-order constraint.)
 - Adds `actor` to `engineers` implicitly (like `start_repair` does with participants).
 - Audit verb: `ppm.completed` (changes: outcome, performed_at, work_order pk or null).
 
