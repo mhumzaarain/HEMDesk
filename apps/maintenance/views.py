@@ -1,22 +1,33 @@
+from datetime import timedelta
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from apps.accounts.models import Roles
 from apps.core.exceptions import DomainError
-from apps.equipment.models import Equipment
+from apps.equipment.models import Department, Equipment, EquipmentStatus
 
 from . import services
 from .forms import (
     CloseComplaintForm,
     ComplaintForm,
     CompleteWorkOrderForm,
+    PPMCompleteForm,
+    PPMScheduleForm,
     RemarkForm,
 )
-from .models import Complaint, ComplaintStatus, WorkOrder
+from .models import (
+    PPM_DUE_SOON_DAYS,
+    Complaint,
+    ComplaintStatus,
+    PPMSchedule,
+    WorkOrder,
+)
 
 ENGINEER_ROLES = (Roles.ENGINEER, Roles.ADMIN)
 
@@ -258,3 +269,105 @@ def workorder_join(request, pk):
     else:
         messages.success(request, "You are now a participant on this work order.")
     return redirect("workorder_detail", pk=pk)
+
+
+@login_required
+def ppm_schedule_edit(request, equipment_pk):
+    _require_engineer(request.user)
+    equipment = get_object_or_404(Equipment, pk=equipment_pk)
+    schedule = getattr(equipment, "ppm_schedule", None)
+    initial = (
+        {
+            "interval": schedule.interval,
+            "next_due": schedule.next_due,
+            "active": schedule.active,
+        }
+        if schedule
+        else None
+    )
+    form = PPMScheduleForm(request.POST or None, initial=initial)
+    if request.method == "POST" and form.is_valid():
+        try:
+            services.set_ppm_schedule(
+                equipment,
+                request.user,
+                form.cleaned_data["interval"],
+                form.cleaned_data["next_due"],
+                active=form.cleaned_data["active"],
+            )
+        except (DomainError, ValueError) as exc:
+            messages.error(request, str(exc))
+        else:
+            messages.success(request, "PPM schedule saved.")
+        return redirect("equipment_detail", pk=equipment_pk)
+    return render(
+        request,
+        "maintenance/ppm_schedule_form.html",
+        {"equipment": equipment, "form": form, "schedule": schedule},
+    )
+
+
+@login_required
+def ppm_complete(request, schedule_pk):
+    _require_engineer(request.user)
+    schedule = get_object_or_404(
+        PPMSchedule.objects.select_related("equipment"), pk=schedule_pk
+    )
+    form = PPMCompleteForm(
+        request.POST or None, initial={"performed_at": timezone.localdate()}
+    )
+    if request.method == "POST" and form.is_valid():
+        try:
+            services.complete_ppm(
+                schedule,
+                request.user,
+                form.cleaned_data["outcome"],
+                form.cleaned_data["performed_at"],
+                engineers=form.cleaned_data["engineers"],
+                remarks=form.cleaned_data["remarks"],
+                open_wo=form.cleaned_data["open_work_order"],
+            )
+        except (DomainError, ValueError) as exc:
+            messages.error(request, str(exc))
+        else:
+            messages.success(request, "PPM recorded.")
+        return redirect("equipment_detail", pk=schedule.equipment_id)
+    return render(
+        request,
+        "maintenance/ppm_complete.html",
+        {"schedule": schedule, "form": form},
+    )
+
+
+@login_required
+def ppm_due_list(request):
+    _require_engineer(request.user)
+    today = timezone.localdate()
+    qs = (
+        PPMSchedule.objects.filter(active=True)
+        .exclude(equipment__status=EquipmentStatus.CONDEMNED)
+        .select_related("equipment__department")
+        .order_by("next_due")
+    )
+    selected_department = request.GET.get("department", "")
+    if selected_department.isdigit():
+        qs = qs.filter(equipment__department_id=selected_department)
+    unscheduled_count = (
+        Equipment.objects.exclude(status=EquipmentStatus.CONDEMNED)
+        .filter(Q(ppm_schedule__isnull=True) | Q(ppm_schedule__active=False))
+        .count()
+    )
+    return render(
+        request,
+        "maintenance/ppm_due_list.html",
+        {
+            "overdue": qs.filter(next_due__lt=today),
+            "due_soon": qs.filter(
+                next_due__gte=today,
+                next_due__lte=today + timedelta(days=PPM_DUE_SOON_DAYS),
+            ),
+            "departments": Department.objects.all(),
+            "selected_department": selected_department,
+            "unscheduled_count": unscheduled_count,
+        },
+    )

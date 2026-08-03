@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}PPM schedule — {{ equipment.name }}{% endblock %}
+{% block page_title %}PPM schedule{% endblock %}
+{% block content %}
+<div class="mx-auto max-w-lg">
+  <h1 class="text-2xl font-bold">{% if schedule %}Edit{% else %}Set{% endif %} PPM schedule</h1>
+  <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+    {{ equipment.name }} {{ equipment.model_number }} · {{ equipment.serial_number }}
+  </p>
+  <form method="post" class="card mt-5 space-y-4 p-5">
+    {% csrf_token %}
+    <div>
+      <label class="mb-1 block text-sm font-medium">Interval</label>
+      {{ form.interval }}
+      {{ form.interval.errors }}
+    </div>
+    <div>
+      <label class="mb-1 block text-sm font-medium">Next due</label>
+      {{ form.next_due }}
+      {{ form.next_due.errors }}
+    </div>
+    <label class="flex items-center gap-2 text-sm">
+      {{ form.active }} Active
+      <span class="text-slate-500 dark:text-slate-400">— untick to pause this schedule</span>
+    </label>
+    <div class="flex gap-2 border-t border-slate-100 pt-4 dark:border-slate-800">
+      <button class="btn-warn btn-sm">Save schedule</button>
+      <a href="{% url 'equipment_detail' equipment.pk %}" class="btn-ghost btn-sm">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

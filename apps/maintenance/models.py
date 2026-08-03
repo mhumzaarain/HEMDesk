@@ -1,5 +1,9 @@
+import calendar
+from datetime import date, timedelta
+
 from django.conf import settings
 from django.db import models
+from django.utils import timezone
 
 from apps.core.models import AppendOnlyModel, NoDeleteModel
 from apps.equipment.models import Equipment
@@ -197,3 +201,99 @@ class Remark(AppendOnlyModel):
 
     class Meta:
         ordering = ["created_at"]
+
+
+class PPMInterval(models.TextChoices):
+    MONTHLY = "monthly", "Monthly"
+    QUARTERLY = "quarterly", "Quarterly"
+    BIANNUAL = "biannual", "Every 6 months"
+    ANNUAL = "annual", "Annual"
+
+
+PPM_INTERVAL_MONTHS = {
+    PPMInterval.MONTHLY: 1,
+    PPMInterval.QUARTERLY: 3,
+    PPMInterval.BIANNUAL: 6,
+    PPMInterval.ANNUAL: 12,
+}
+
+PPM_DUE_SOON_DAYS = 30
+
+
+class PPMOutcome(models.TextChoices):
+    PASSED = "passed", "Passed"
+    PASSED_WITH_REMARKS = "passed_with_remarks", "Passed with remarks"
+    FAILED = "failed", "Failed"
+
+
+def add_months(d: date, months: int) -> date:
+    """d + months, clamping to the last day of the target month
+    (Jan 31 + 1 month -> Feb 28/29)."""
+    month_index = d.month - 1 + months
+    year = d.year + month_index // 12
+    month = month_index % 12 + 1
+    day = min(d.day, calendar.monthrange(year, month)[1])
+    return date(year, month, day)
+
+
+class PPMSchedule(NoDeleteModel):
+    equipment = models.OneToOneField(
+        Equipment, on_delete=models.PROTECT, related_name="ppm_schedule"
+    )
+    interval = models.CharField(max_length=20, choices=PPMInterval.choices)
+    next_due = models.DateField()
+    active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["next_due"]
+
+    @property
+    def interval_months(self) -> int:
+        return PPM_INTERVAL_MONTHS[self.interval]
+
+    @property
+    def is_overdue(self) -> bool:
+        return self.next_due < timezone.localdate()
+
+    @property
+    def is_due_soon(self) -> bool:
+        today = timezone.localdate()
+        return today <= self.next_due <= today + timedelta(days=PPM_DUE_SOON_DAYS)
+
+    def __str__(self):
+        return f"PPM {self.get_interval_display()} — {self.equipment}"
+
+
+class PPMRecord(AppendOnlyModel):
+    schedule = models.ForeignKey(
+        PPMSchedule, on_delete=models.PROTECT, related_name="records"
+    )
+    due_date = models.DateField(
+        help_text="Snapshot of the schedule's next_due when this PPM was recorded."
+    )
+    performed_at = models.DateField()
+    outcome = models.CharField(max_length=30, choices=PPMOutcome.choices)
+    remarks = models.TextField(blank=True)
+    engineers = models.ManyToManyField(
+        settings.AUTH_USER_MODEL, blank=True, related_name="ppm_records"
+    )
+    recorded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="ppm_records_recorded",
+    )
+    work_order = models.ForeignKey(
+        WorkOrder,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="ppm_records",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-performed_at", "-created_at"]
+
+    def __str__(self):
+        return f"PPM on {self.performed_at} — {self.schedule.equipment}"

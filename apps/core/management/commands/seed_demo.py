@@ -10,12 +10,22 @@ from django.utils import timezone
 from apps.accounts.models import Roles
 from apps.equipment.models import Department, Equipment, StatusEvent
 from apps.equipment.services import condemn_equipment
-from apps.maintenance.models import Complaint, FaultCategory, WorkOrder
+from apps.maintenance.models import (
+    Complaint,
+    FaultCategory,
+    PPMInterval,
+    PPMOutcome,
+    PPMRecord,
+    PPMSchedule,
+    WorkOrder,
+)
 from apps.maintenance.services import (
     add_remark,
+    complete_ppm,
     complete_work_order,
     lodge_complaint,
     open_work_order,
+    set_ppm_schedule,
     start_repair,
 )
 
@@ -196,11 +206,46 @@ class Command(BaseCommand):
                     condemned_location="Condemned store, basement",
                 )
 
+        # PPM schedules for ~15 devices; past completions give a natural
+        # mix of overdue / due-soon / on-track next_due dates.
+        ppm_pool = [d for d in devices if d.status == "working"]
+        for device in random.sample(ppm_pool, min(15, len(ppm_pool))):
+            device.refresh_from_db()
+            if device.status != "working":
+                continue
+            engineer = random.choice(engineers)
+            interval = random.choice(
+                [PPMInterval.MONTHLY, PPMInterval.QUARTERLY, PPMInterval.BIANNUAL]
+            )
+            schedule = set_ppm_schedule(
+                device,
+                engineer,
+                interval,
+                now.date() + timedelta(days=random.randint(-30, 45)),
+            )
+            if random.random() < 0.6:
+                performed = now.date() - timedelta(days=random.randint(20, 100))
+                complete_ppm(
+                    schedule,
+                    engineer,
+                    random.choice(
+                        [
+                            PPMOutcome.PASSED,
+                            PPMOutcome.PASSED,
+                            PPMOutcome.PASSED_WITH_REMARKS,
+                        ]
+                    ),
+                    performed,
+                    remarks="Routine PPM completed.",
+                )
+
         self.stdout.write(
             self.style.SUCCESS(
                 f"Seeded {Equipment.objects.count()} devices, "
                 f"{Complaint.objects.count()} complaints, "
-                f"{WorkOrder.objects.count()} work orders. "
+                f"{WorkOrder.objects.count()} work orders, "
+                f"{PPMSchedule.objects.count()} PPM schedules, "
+                f"{PPMRecord.objects.count()} PPM records. "
                 f"Logins: admin, engineer1, staff1 — password: {demo_password}"
             )
         )

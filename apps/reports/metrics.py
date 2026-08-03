@@ -2,16 +2,20 @@
 No MTTR and no SLA metrics anywhere (spec sections 7 and 9)."""
 
 from collections import defaultdict
+from datetime import timedelta
 
 from django.db.models import Count, Q
+from django.utils import timezone
 
 from apps.equipment.models import Equipment, EquipmentStatus
 from apps.maintenance.models import (
+    PPM_DUE_SOON_DAYS,
     CloseReason,
     Complaint,
     ComplaintStatus,
     FaultCategory,
     FunctionalConfirmation,
+    PPMSchedule,
     Remark,
     RemarkKind,
     WorkOrder,
@@ -254,3 +258,32 @@ def month_metrics(month):
         "delayed_repairs": delayed_repairs(start, end),
         "per_engineer_resolved": per_engineer_resolved(start, end),
     }
+
+
+def _active_ppm_schedules():
+    return PPMSchedule.objects.filter(active=True).exclude(
+        equipment__status=EquipmentStatus.CONDEMNED
+    )
+
+
+def ppm_due_counts():
+    today = timezone.localdate()
+    qs = _active_ppm_schedules()
+    return {
+        "overdue": qs.filter(next_due__lt=today).count(),
+        "due_soon": qs.filter(
+            next_due__gte=today,
+            next_due__lte=today + timedelta(days=PPM_DUE_SOON_DAYS),
+        ).count(),
+    }
+
+
+def ppm_overdue_by_department():
+    rows = (
+        _active_ppm_schedules()
+        .filter(next_due__lt=timezone.localdate())
+        .values("equipment__department__name")
+        .annotate(n=Count("id"))
+        .order_by("-n")
+    )
+    return {r["equipment__department__name"]: r["n"] for r in rows}

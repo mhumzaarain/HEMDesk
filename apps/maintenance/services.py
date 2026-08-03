@@ -14,11 +14,16 @@ from .models import (
     ComplaintStatus,
     FaultCategory,
     FunctionalConfirmation,
+    PPMInterval,
+    PPMOutcome,
+    PPMRecord,
+    PPMSchedule,
     Remark,
     RemarkKind,
     WorkOrder,
     WorkOrderOutcome,
     WorkOrderStatus,
+    add_months,
 )
 
 
@@ -250,3 +255,77 @@ def confirm_complaint(complaint, actor, is_functional) -> Complaint:
     complaint.save(update_fields=["functional_confirmation", "confirmed_at"])
     audit.record(actor, "complaint.confirmed", complaint, {"functional": is_functional})
     return complaint
+
+
+@transaction.atomic
+def set_ppm_schedule(equipment, actor, interval, next_due, active=True) -> PPMSchedule:
+    _require_engineer_or_admin(actor)
+    equipment.refresh_from_db()
+    if equipment.status == EquipmentStatus.CONDEMNED:
+        raise WorkOrderStateError("Cannot schedule PPM for condemned equipment.")
+    if interval not in PPMInterval.values:
+        raise ValueError("A valid PPM interval is required.")
+    schedule, _created = PPMSchedule.objects.update_or_create(
+        equipment=equipment,
+        defaults={"interval": interval, "next_due": next_due, "active": active},
+    )
+    audit.record(
+        actor,
+        "ppm.schedule_set",
+        schedule,
+        {"interval": interval, "next_due": str(next_due), "active": active},
+    )
+    return schedule
+
+
+@transaction.atomic
+def complete_ppm(
+    schedule, actor, outcome, performed_at, engineers=(), remarks="", open_wo=False
+) -> PPMRecord:
+    _require_engineer_or_admin(actor)
+    if not schedule.active:
+        raise WorkOrderStateError("This PPM schedule is inactive.")
+    equipment = schedule.equipment
+    equipment.refresh_from_db()
+    if equipment.status == EquipmentStatus.CONDEMNED:
+        raise WorkOrderStateError("This equipment is condemned.")
+    if outcome not in PPMOutcome.values:
+        raise ValueError("A valid PPM outcome is required.")
+    if performed_at > timezone.localdate():
+        raise ValueError("The performed date cannot be in the future.")
+    if open_wo and outcome != PPMOutcome.FAILED:
+        raise ValueError("A work order can only be opened for a failed PPM.")
+    active_wo = equipment.work_orders.filter(
+        status__in=ACTIVE_WORKORDER_STATUSES
+    ).first()
+    if active_wo:
+        raise WorkOrderStateError(
+            f"This equipment is under repair (WO #{active_wo.pk}) — "
+            "complete or cancel it first."
+        )
+    for engineer in engineers:
+        _require_engineer_or_admin(engineer)
+    work_order = open_work_order(equipment, actor) if open_wo else None
+    record = PPMRecord.objects.create(
+        schedule=schedule,
+        due_date=schedule.next_due,
+        performed_at=performed_at,
+        outcome=outcome,
+        remarks=remarks,
+        recorded_by=actor,
+        work_order=work_order,
+    )
+    record.engineers.add(actor, *engineers)
+    schedule.next_due = add_months(performed_at, schedule.interval_months)
+    schedule.save(update_fields=["next_due"])
+    audit.record(
+        actor,
+        "ppm.completed",
+        record,
+        {
+            "outcome": outcome,
+            "performed_at": str(performed_at),
+            "work_order": work_order.pk if work_order else None,
+        },
+    )
+    return record

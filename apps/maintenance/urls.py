@@ -32,4 +32,11 @@ urlpatterns = [
         "workorders/<int:pk>/remark/", views.workorder_remark, name="workorder_remark"
     ),
     path("workorders/<int:pk>/join/", views.workorder_join, name="workorder_join"),
+    path(
+        "ppm/schedule/<int:equipment_pk>/",
+        views.ppm_schedule_edit,
+        name="ppm_schedule_edit",
+    ),
+    path("ppm/<int:schedule_pk>/complete/", views.ppm_complete, name="ppm_complete"),
+    path("ppm/", views.ppm_due_list, name="ppm_due_list"),
 ]

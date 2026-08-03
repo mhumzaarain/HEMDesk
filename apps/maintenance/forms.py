@@ -4,7 +4,15 @@ from django.contrib.auth import get_user_model
 from apps.accounts.models import Roles
 from apps.equipment.models import Equipment
 
-from .models import CloseReason, Complaint, ComplaintStatus, FaultCategory, RemarkKind
+from .models import (
+    CloseReason,
+    Complaint,
+    ComplaintStatus,
+    FaultCategory,
+    PPMInterval,
+    PPMOutcome,
+    RemarkKind,
+)
 
 INPUT = (
     "w-full rounded border border-slate-300 px-3 py-2 "
@@ -95,3 +103,44 @@ class RemarkForm(forms.Form):
         ],
         initial=RemarkKind.NOTE,
     )
+
+
+class PPMScheduleForm(forms.Form):
+    interval = forms.ChoiceField(
+        choices=PPMInterval.choices,
+        widget=forms.Select(attrs={"class": INPUT}),
+    )
+    next_due = forms.DateField(
+        widget=forms.DateInput(attrs={"type": "date", "class": INPUT})
+    )
+    active = forms.BooleanField(required=False, initial=True)
+
+
+class PPMCompleteForm(forms.Form):
+    performed_at = forms.DateField(
+        widget=forms.DateInput(attrs={"type": "date", "class": INPUT})
+    )
+    outcome = forms.ChoiceField(
+        choices=PPMOutcome.choices, widget=forms.RadioSelect
+    )
+    engineers = forms.ModelMultipleChoiceField(
+        queryset=get_user_model().objects.filter(
+            role__in=[Roles.ENGINEER, Roles.ADMIN], is_active=True
+        ),
+        required=False,
+        widget=forms.CheckboxSelectMultiple,
+        help_text="Tick every engineer who performed this PPM.",
+    )
+    remarks = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={"rows": 3, "class": INPUT}),
+    )
+    open_work_order = forms.BooleanField(required=False)
+
+    def clean(self):
+        data = super().clean()
+        if data.get("open_work_order") and data.get("outcome") != PPMOutcome.FAILED:
+            raise forms.ValidationError(
+                "A work order can only be opened when the PPM failed."
+            )
+        return data
