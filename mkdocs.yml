@@ -53,3 +53,8 @@ nav:
       - Import from Excel or CSV: equipment/import.md
       - Accessories & stock: equipment/accessories.md
       - Accessory faults & replacement: equipment/accessory-faults.md
+  - Complaints & Repairs:
+      - Lodge a complaint: complaints/lodge.md
+      - Track & confirm resolution: complaints/track-and-confirm.md
+      - The complaint queue: complaints/queue.md
+      - Work orders: complaints/work-orders.md

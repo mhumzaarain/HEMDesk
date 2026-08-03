@@ -4,7 +4,7 @@
 
 Use this when an accessory fitted to a device fails and needs to be marked faulty, repaired, or replaced.
 
-Fault handling happens on an active work order for the device — see the work order page (Complaints & Repairs). From there:
+Fault handling happens on an active work order for the device — see the [work order page](../complaints/work-orders.md). From there:
 
 1. **Mark faulty** — one click, no extra fields.
 2. **Repair** — enter the required "What was done," which returns the unit to **Working**.
