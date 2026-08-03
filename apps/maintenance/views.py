@@ -14,6 +14,7 @@ from .forms import (
     CloseComplaintForm,
     ComplaintForm,
     CompleteWorkOrderForm,
+    PPMScheduleForm,
     RemarkForm,
 )
 from .models import Complaint, ComplaintStatus, WorkOrder
@@ -258,3 +259,39 @@ def workorder_join(request, pk):
     else:
         messages.success(request, "You are now a participant on this work order.")
     return redirect("workorder_detail", pk=pk)
+
+
+@login_required
+def ppm_schedule_edit(request, equipment_pk):
+    _require_engineer(request.user)
+    equipment = get_object_or_404(Equipment, pk=equipment_pk)
+    schedule = getattr(equipment, "ppm_schedule", None)
+    initial = (
+        {
+            "interval": schedule.interval,
+            "next_due": schedule.next_due,
+            "active": schedule.active,
+        }
+        if schedule
+        else None
+    )
+    form = PPMScheduleForm(request.POST or None, initial=initial)
+    if request.method == "POST" and form.is_valid():
+        try:
+            services.set_ppm_schedule(
+                equipment,
+                request.user,
+                form.cleaned_data["interval"],
+                form.cleaned_data["next_due"],
+                active=form.cleaned_data["active"],
+            )
+        except (DomainError, ValueError) as exc:
+            messages.error(request, str(exc))
+        else:
+            messages.success(request, "PPM schedule saved.")
+        return redirect("equipment_detail", pk=equipment_pk)
+    return render(
+        request,
+        "maintenance/ppm_schedule_form.html",
+        {"equipment": equipment, "form": form, "schedule": schedule},
+    )

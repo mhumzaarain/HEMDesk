@@ -4,7 +4,14 @@ from django.contrib.auth import get_user_model
 from apps.accounts.models import Roles
 from apps.equipment.models import Equipment
 
-from .models import CloseReason, Complaint, ComplaintStatus, FaultCategory, RemarkKind
+from .models import (
+    CloseReason,
+    Complaint,
+    ComplaintStatus,
+    FaultCategory,
+    PPMInterval,
+    RemarkKind,
+)
 
 INPUT = (
     "w-full rounded border border-slate-300 px-3 py-2 "
@@ -95,3 +102,14 @@ class RemarkForm(forms.Form):
         ],
         initial=RemarkKind.NOTE,
     )
+
+
+class PPMScheduleForm(forms.Form):
+    interval = forms.ChoiceField(
+        choices=PPMInterval.choices,
+        widget=forms.Select(attrs={"class": INPUT}),
+    )
+    next_due = forms.DateField(
+        widget=forms.DateInput(attrs={"type": "date", "class": INPUT})
+    )
+    active = forms.BooleanField(required=False, initial=True)

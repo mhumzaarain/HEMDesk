@@ -81,6 +81,15 @@ class EquipmentDetailView(LoginRequiredMixin, DetailView):
         ctx["completed_repair_count"] = eq.work_orders.filter(
             status="completed"
         ).count()
+        schedule = getattr(eq, "ppm_schedule", None)
+        ctx["ppm_schedule"] = schedule
+        ctx["ppm_records"] = (
+            schedule.records.select_related("work_order").prefetch_related(
+                "engineers"
+            )
+            if schedule
+            else []
+        )
         if self.request.user.is_engineer_or_admin:
             from apps.ai import services as ai_services
             from apps.ai.models import ServiceManual

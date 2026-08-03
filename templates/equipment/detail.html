@@ -102,5 +102,46 @@
     {% empty %}<p class="text-sm text-slate-500 dark:text-slate-400">No repairs recorded.</p>{% endfor %}
   </div>
 </div>
+<div class="card mt-6 p-5">
+  <div class="mb-3 flex flex-wrap items-center gap-2">
+    <h2 class="font-semibold">Preventive Maintenance</h2>
+    {% if ppm_schedule and ppm_schedule.active %}
+      {% if ppm_schedule.is_overdue %}<span class="badge-danger">Overdue</span>
+      {% elif ppm_schedule.is_due_soon %}<span class="badge-repair">Due soon</span>
+      {% else %}<span class="badge-working">On track</span>{% endif %}
+    {% elif ppm_schedule %}<span class="badge-muted">Inactive</span>{% endif %}
+    {% if can_engineer and equipment.status != 'condemned' %}
+    <span class="ml-auto flex gap-2">
+      <a href="{% url 'ppm_schedule_edit' equipment.pk %}" class="btn-ghost btn-sm">
+        {% if ppm_schedule %}Edit schedule{% else %}Set schedule{% endif %}</a>
+    </span>
+    {% endif %}
+  </div>
+  {% if ppm_schedule %}
+  <p class="text-sm text-slate-500 dark:text-slate-400">
+    {{ ppm_schedule.get_interval_display }} · next due {{ ppm_schedule.next_due }}
+  </p>
+  <div class="mt-3 space-y-3">
+    {% for rec in ppm_records %}
+    <div class="flex flex-wrap items-center gap-2 rounded-lg border border-slate-100 px-4 py-3 text-sm dark:border-slate-800">
+      <span class="font-medium">{{ rec.performed_at }}</span>
+      {% if rec.outcome == 'passed' %}<span class="badge-working">{{ rec.get_outcome_display }}</span>
+      {% elif rec.outcome == 'failed' %}<span class="badge-danger">{{ rec.get_outcome_display }}</span>
+      {% else %}<span class="badge-info">{{ rec.get_outcome_display }}</span>{% endif %}
+      {% if rec.work_order_id %}
+        {% if can_engineer %}<a class="link" href="{% url 'workorder_detail' rec.work_order_id %}">WO #{{ rec.work_order_id }}</a>
+        {% else %}<span>WO #{{ rec.work_order_id }}</span>{% endif %}
+      {% endif %}
+      {% if rec.remarks %}<span class="text-slate-500 dark:text-slate-400">“{{ rec.remarks }}”</span>{% endif %}
+      <span class="ml-auto text-slate-500 dark:text-slate-400">
+        by {% for e in rec.engineers.all %}{{ e.get_full_name|default:e.username }}{% if not forloop.last %}, {% endif %}{% endfor %}
+      </span>
+    </div>
+    {% empty %}<p class="text-sm text-slate-500 dark:text-slate-400">No PPMs recorded yet.</p>{% endfor %}
+  </div>
+  {% else %}
+  <p class="text-sm text-slate-500 dark:text-slate-400">No PPM schedule for this device.</p>
+  {% endif %}
+</div>
 {% include "ai/_assistant_panel.html" with equipment=equipment %}
 {% endblock %}
