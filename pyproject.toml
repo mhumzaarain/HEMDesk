@@ -22,6 +22,9 @@ dev = [
     "pytest-django~=4.9",
     "ruff~=0.9",
 ]
+docs = [
+    "mkdocs-material>=9.7.7",
+]
 
 # This is a Django application, not a distributable package — uv manages the
 # environment but does not build/install the project itself.

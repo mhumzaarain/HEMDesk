@@ -1,0 +1,45 @@
+site_name: HEMDesk Documentation
+site_description: User and developer documentation for the Biomedical CMMS
+site_url: https://mhumzaarain.github.io/Hospital-Medical-Equipment-Management-System-Biomedical-CMMS-/
+repo_url: https://github.com/mhumzaarain/Hospital-Medical-Equipment-Management-System-Biomedical-CMMS-
+repo_name: GitHub
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: teal
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: teal
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.sections
+    - navigation.footer
+    - navigation.top
+    - search.highlight
+    - content.code.copy
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
+exclude_docs: |
+  superpowers/
+  FOLLOWUPS.md
+
+nav:
+  - Home: index.md
