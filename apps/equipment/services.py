@@ -302,7 +302,7 @@ def replace_accessory(accessory, actor, work_order, remark, serial_number=""):
     from django.utils import timezone
 
     _require_engineer_or_admin(actor)
-    accessory.refresh_from_db()
+    accessory = Accessory.objects.select_for_update().get(pk=accessory.pk)
     _require_accessory_on_active_workorder(accessory, work_order)
     if accessory.status == AccessoryStatus.CONDEMNED:
         raise AccessoryStateError("This accessory is already condemned.")
@@ -360,7 +360,7 @@ def replace_accessory(accessory, actor, work_order, remark, serial_number=""):
 @transaction.atomic
 def repair_accessory(accessory, actor, work_order, remark):
     _require_engineer_or_admin(actor)
-    accessory.refresh_from_db()
+    accessory = Accessory.objects.select_for_update().get(pk=accessory.pk)
     _require_accessory_on_active_workorder(accessory, work_order)
     if accessory.status == AccessoryStatus.CONDEMNED:
         raise AccessoryStateError("This accessory is condemned.")
