@@ -25,4 +25,5 @@ bin/
 # Agent workspaces
 .superpowers/
 /superpowers/
-docs/superpowers/specs/
+docs/superpowers/
+docs/FOLLOWUPS.md
