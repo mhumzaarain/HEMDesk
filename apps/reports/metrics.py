@@ -7,7 +7,12 @@ from datetime import timedelta
 from django.db.models import Count, Q
 from django.utils import timezone
 
-from apps.equipment.models import Equipment, EquipmentStatus
+from apps.equipment.models import (
+    AccessoryEvent,
+    AccessoryEventKind,
+    Equipment,
+    EquipmentStatus,
+)
 from apps.maintenance.models import (
     PPM_DUE_SOON_DAYS,
     CloseReason,
@@ -287,3 +292,45 @@ def ppm_overdue_by_department():
         .order_by("-n")
     )
     return {r["equipment__department__name"]: r["n"] for r in rows}
+
+
+def accessory_replacements_by_equipment(window_start, window_end, limit=5):
+    rows = (
+        AccessoryEvent.objects.filter(
+            kind=AccessoryEventKind.REPLACED,
+            created_at__range=(window_start, window_end),
+        )
+        .values("equipment_id", "equipment__name", "equipment__serial_number")
+        .annotate(n=Count("id"))
+        .order_by("-n")[:limit]
+    )
+    return [
+        {
+            "equipment_id": r["equipment_id"],
+            "label": f"{r['equipment__name']} ({r['equipment__serial_number']})",
+            "n": r["n"],
+        }
+        for r in rows
+    ]
+
+
+def accessory_replacements_by_type(window_start, window_end, limit=5):
+    rows = (
+        AccessoryEvent.objects.filter(
+            kind=AccessoryEventKind.REPLACED,
+            created_at__range=(window_start, window_end),
+        )
+        .values("accessory_type__name", "accessory_type__equipment_name")
+        .annotate(n=Count("id"))
+        .order_by("-n")[:limit]
+    )
+    return [
+        {
+            "label": (
+                f"{r['accessory_type__name']} — "
+                f"{r['accessory_type__equipment_name']}"
+            ),
+            "n": r["n"],
+        }
+        for r in rows
+    ]

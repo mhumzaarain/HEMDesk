@@ -24,6 +24,7 @@ from .forms import (
 )
 from .models import (
     Accessory,
+    AccessoryEventKind,
     AccessoryStatus,
     AccessoryType,
     Equipment,
@@ -96,6 +97,14 @@ class EquipmentDetailView(LoginRequiredMixin, DetailView):
         ctx["work_orders"] = eq.work_orders.prefetch_related("remarks", "participants")
         ctx["open_complaints"] = eq.complaints.exclude(status="closed")
         ctx["accessories"] = eq.accessories.select_related("type")
+        replaced_breakdown = list(
+            eq.accessory_events.filter(kind=AccessoryEventKind.REPLACED)
+            .values("accessory_type__name")
+            .annotate(n=Count("id"))
+            .order_by("-n")
+        )
+        ctx["accessory_replaced_total"] = sum(r["n"] for r in replaced_breakdown)
+        ctx["accessory_replaced_breakdown"] = replaced_breakdown
         ctx["can_engineer"] = self.request.user.is_engineer_or_admin
         ctx["completed_repair_count"] = eq.work_orders.filter(
             status="completed"
@@ -259,6 +268,11 @@ class AccessoryTypeListView(RoleRequiredMixin, ListView):
                 "units", filter=~Q(units__status=AccessoryStatus.CONDEMNED)
             )
         )
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["restock"] = AccessoryType.objects.filter(stock_qty=0)
+        return ctx
 
 
 class AccessoryTypeCreateView(RoleRequiredMixin, View):

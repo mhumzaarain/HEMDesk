@@ -25,6 +25,7 @@ def dashboard(request):
     devices = metrics.most_complained_devices(window_start, window_end)
     faults = metrics.fault_category_counts(window_start, window_end)
     prev_start = window_start - timedelta(days=30)
+    acc_window_start = window_end - timedelta(days=90)
     repairs_completed = metrics.repairs_completed_count(window_start, window_end)
     repairs_prev = metrics.repairs_completed_count(prev_start, window_start)
     downtime_hours = round(sum(downtime.values()), 1)
@@ -62,6 +63,12 @@ def dashboard(request):
         "high_risk": ai_services.high_risk_devices(),
         "ppm": metrics.ppm_due_counts(),
         "ppm_overdue_depts": metrics.ppm_overdue_by_department(),
+        "acc_repl_equipment": metrics.accessory_replacements_by_equipment(
+            acc_window_start, window_end
+        ),
+        "acc_repl_types": metrics.accessory_replacements_by_type(
+            acc_window_start, window_end
+        ),
     }
     return render(request, "reports/dashboard.html", context)
 

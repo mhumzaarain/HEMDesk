@@ -2,6 +2,19 @@
 {% block title %}Accessories{% endblock %}
 {% block page_title %}Accessories{% endblock %}
 {% block content %}
+{% if restock %}
+<div class="card mb-6 border border-red-200 bg-red-50 p-5 dark:border-red-500/30 dark:bg-red-500/10">
+  <h2 class="mb-2 font-semibold text-red-800 dark:text-red-300">Restock needed</h2>
+  <ul class="space-y-1 text-sm">
+    {% for type in restock %}
+    <li class="flex flex-wrap items-center gap-2">
+      <span>{{ type.name }} — {{ type.equipment_name }}</span>
+      <a href="{% url 'accessory_stock_adjust' type.pk %}" class="link ml-auto">Adjust stock →</a>
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
 <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
   <div>
     <h1 class="text-2xl font-bold">Accessory inventory</h1>

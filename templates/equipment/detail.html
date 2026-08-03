@@ -111,6 +111,12 @@
     </span>
     {% endif %}
   </div>
+  {% if accessory_replaced_total %}
+  <p class="mb-3 text-sm text-slate-500 dark:text-slate-400">
+    {{ accessory_replaced_total }} replaced all-time —
+    {% for row in accessory_replaced_breakdown %}{{ row.n }}× {{ row.accessory_type__name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+  </p>
+  {% endif %}
   <div class="space-y-3">
     {% for acc in accessories %}
     <div class="flex flex-wrap items-center gap-2 rounded-lg border border-slate-100 px-4 py-3 text-sm dark:border-slate-800">
