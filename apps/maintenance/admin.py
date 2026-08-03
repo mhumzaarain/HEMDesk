@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Complaint, Remark, WorkOrder
+from .models import Complaint, PPMRecord, PPMSchedule, Remark, WorkOrder
 
 
 @admin.register(Complaint)
@@ -47,6 +47,35 @@ class WorkOrderAdmin(admin.ModelAdmin):
 class RemarkAdmin(admin.ModelAdmin):
     list_display = ("created_at", "work_order", "author", "kind")
     readonly_fields = [f.name for f in Remark._meta.fields]
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(PPMSchedule)
+class PPMScheduleAdmin(admin.ModelAdmin):
+    list_display = ("id", "equipment", "interval", "next_due", "active")
+    list_filter = ("interval", "active")
+    readonly_fields = [f.name for f in PPMSchedule._meta.fields]
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(PPMRecord)
+class PPMRecordAdmin(admin.ModelAdmin):
+    list_display = ("id", "schedule", "performed_at", "outcome", "recorded_by")
+    list_filter = ("outcome",)
+    readonly_fields = [f.name for f in PPMRecord._meta.fields]
 
     def has_add_permission(self, request):
         return False
