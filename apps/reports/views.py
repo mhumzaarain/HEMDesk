@@ -60,6 +60,8 @@ def dashboard(request):
             {"labels": list(faults.keys()), "values": list(faults.values())}
         ),
         "high_risk": ai_services.high_risk_devices(),
+        "ppm": metrics.ppm_due_counts(),
+        "ppm_overdue_depts": metrics.ppm_overdue_by_department(),
     }
     return render(request, "reports/dashboard.html", context)
 

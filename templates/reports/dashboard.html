@@ -123,6 +123,27 @@
       {% empty %}<li class="text-slate-500 dark:text-slate-400">No devices above the risk threshold.</li>{% endfor %}
     </ul>
   </div>
+  <div class="card p-5">
+    <h2 class="mb-3 font-semibold">PPM compliance</h2>
+    <div class="flex gap-8">
+      <div>
+        <span class="text-3xl font-bold tabular-nums {% if ppm.overdue %}text-red-600 dark:text-red-400{% endif %}">{{ ppm.overdue }}</span>
+        <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Overdue</p>
+      </div>
+      <div>
+        <span class="text-3xl font-bold tabular-nums">{{ ppm.due_soon }}</span>
+        <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Due in 30 days</p>
+      </div>
+    </div>
+    {% if ppm_overdue_depts %}
+    <ul class="mt-3 space-y-1 text-sm">
+      {% for dept, n in ppm_overdue_depts.items %}
+      <li class="flex justify-between"><span>{{ dept }}</span><span class="badge-danger">{{ n }}</span></li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+    <a class="link mt-3 inline-block text-sm" href="{% url 'ppm_due_list' %}">Open PPM due list →</a>
+  </div>
 </div>
 {{ downtime_json|json_script:"downtime-data" }}
 {{ complaints_json|json_script:"complaints-data" }}
