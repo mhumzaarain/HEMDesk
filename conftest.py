@@ -1,7 +1,7 @@
 import pytest
 from django.contrib.auth import get_user_model
 
-from apps.equipment.models import Department, Equipment
+from apps.equipment.models import Accessory, AccessoryType, Department, Equipment
 from apps.maintenance.models import WorkOrder, WorkOrderStatus
 
 
@@ -93,3 +93,15 @@ def make_work_order(equipment, engineer):
         return WorkOrder.objects.create(**fields)
 
     return _make
+
+
+@pytest.fixture
+def accessory_type(db):
+    return AccessoryType.objects.create(
+        name="ECG cable", equipment_name="Patient Monitor SVM 7523"
+    )
+
+
+@pytest.fixture
+def fitted_accessory(accessory_type, equipment):
+    return Accessory.objects.create(type=accessory_type, equipment=equipment)
