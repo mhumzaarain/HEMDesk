@@ -8,12 +8,15 @@ from django.views.generic import DetailView, ListView, View
 from apps.accounts.mixins import RoleRequiredMixin
 from apps.accounts.models import Roles
 from apps.core.exceptions import DomainError
+from apps.maintenance.models import WorkOrder
 
 from . import importer, services
 from .forms import (
     AccessoryAttachForm,
     AccessoryCondemnForm,
     AccessoryEditForm,
+    AccessoryRepairForm,
+    AccessoryReplaceForm,
     AccessoryTypeForm,
     CondemnForm,
     EquipmentForm,
@@ -485,3 +488,109 @@ class AccessoryCondemnView(RoleRequiredMixin, View):
         else:
             messages.success(request, "Accessory condemned. Its record is preserved.")
         return redirect("equipment_detail", pk=accessory.equipment_id)
+
+
+class AccessoryMarkFaultyView(RoleRequiredMixin, View):
+    allowed_roles = ENGINEER_ROLES
+
+    def post(self, request, pk, wo_pk):
+        accessory = get_object_or_404(Accessory, pk=pk)
+        get_object_or_404(WorkOrder, pk=wo_pk)
+        try:
+            services.update_accessory(
+                accessory, request.user, status=AccessoryStatus.FAULTY
+            )
+        except DomainError as exc:
+            messages.error(request, str(exc))
+        else:
+            messages.success(request, "Accessory marked faulty.")
+        return redirect("workorder_detail", pk=wo_pk)
+
+
+class AccessoryRepairView(RoleRequiredMixin, View):
+    allowed_roles = ENGINEER_ROLES
+
+    def _render(self, request, form, accessory, work_order):
+        return render(
+            request,
+            "equipment/accessory_form.html",
+            {
+                "form": form,
+                "form_title": f"Repair {accessory.type.name}",
+                "form_subtitle": f"WO #{work_order.pk} · {accessory.equipment}",
+                "cancel_url": reverse("workorder_detail", args=[work_order.pk]),
+            },
+        )
+
+    def get(self, request, pk, wo_pk):
+        accessory = get_object_or_404(
+            Accessory.objects.select_related("type", "equipment"), pk=pk
+        )
+        work_order = get_object_or_404(WorkOrder, pk=wo_pk)
+        return self._render(request, AccessoryRepairForm(), accessory, work_order)
+
+    def post(self, request, pk, wo_pk):
+        accessory = get_object_or_404(
+            Accessory.objects.select_related("type", "equipment"), pk=pk
+        )
+        work_order = get_object_or_404(WorkOrder, pk=wo_pk)
+        form = AccessoryRepairForm(request.POST)
+        if not form.is_valid():
+            return self._render(request, form, accessory, work_order)
+        try:
+            services.repair_accessory(
+                accessory, request.user, work_order, form.cleaned_data["remark"]
+            )
+        except DomainError as exc:
+            messages.error(request, str(exc))
+        else:
+            messages.success(request, "Accessory repaired.")
+        return redirect("workorder_detail", pk=wo_pk)
+
+
+class AccessoryReplaceView(RoleRequiredMixin, View):
+    allowed_roles = ENGINEER_ROLES
+
+    def _render(self, request, form, accessory, work_order):
+        return render(
+            request,
+            "equipment/accessory_form.html",
+            {
+                "form": form,
+                "form_title": f"Replace {accessory.type.name}",
+                "form_subtitle": (
+                    f"WO #{work_order.pk} · in store: "
+                    f"{accessory.type.stock_qty}"
+                ),
+                "cancel_url": reverse("workorder_detail", args=[work_order.pk]),
+            },
+        )
+
+    def get(self, request, pk, wo_pk):
+        accessory = get_object_or_404(
+            Accessory.objects.select_related("type", "equipment"), pk=pk
+        )
+        work_order = get_object_or_404(WorkOrder, pk=wo_pk)
+        return self._render(request, AccessoryReplaceForm(), accessory, work_order)
+
+    def post(self, request, pk, wo_pk):
+        accessory = get_object_or_404(
+            Accessory.objects.select_related("type", "equipment"), pk=pk
+        )
+        work_order = get_object_or_404(WorkOrder, pk=wo_pk)
+        form = AccessoryReplaceForm(request.POST)
+        if not form.is_valid():
+            return self._render(request, form, accessory, work_order)
+        try:
+            services.replace_accessory(
+                accessory,
+                request.user,
+                work_order,
+                remark=form.cleaned_data["remark"],
+                serial_number=form.cleaned_data["serial_number"],
+            )
+        except DomainError as exc:
+            messages.error(request, str(exc))
+        else:
+            messages.success(request, "Accessory replaced from backup stock.")
+        return redirect("workorder_detail", pk=wo_pk)

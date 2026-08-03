@@ -54,4 +54,19 @@ urlpatterns = [
         views.AccessoryCondemnView.as_view(),
         name="accessory_condemn",
     ),
+    path(
+        "accessories/<int:pk>/mark-faulty/<int:wo_pk>/",
+        views.AccessoryMarkFaultyView.as_view(),
+        name="accessory_mark_faulty",
+    ),
+    path(
+        "accessories/<int:pk>/repair/<int:wo_pk>/",
+        views.AccessoryRepairView.as_view(),
+        name="accessory_repair",
+    ),
+    path(
+        "accessories/<int:pk>/replace/<int:wo_pk>/",
+        views.AccessoryReplaceView.as_view(),
+        name="accessory_replace",
+    ),
 ]

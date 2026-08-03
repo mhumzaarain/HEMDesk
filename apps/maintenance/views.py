@@ -186,6 +186,10 @@ def workorder_detail(request, pk):
             "wo": wo,
             "remark_form": RemarkForm(),
             "can_engineer": request.user.is_engineer_or_admin,
+            "accessories": wo.equipment.accessories.select_related("type"),
+            "accessory_events": wo.accessory_events.select_related(
+                "accessory_type", "actor"
+            ),
         },
     )
 
