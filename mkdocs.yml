@@ -58,3 +58,6 @@ nav:
       - Track & confirm resolution: complaints/track-and-confirm.md
       - The complaint queue: complaints/queue.md
       - Work orders: complaints/work-orders.md
+  - Preventive Maintenance:
+      - PPM schedules: ppm/schedules.md
+      - Completing due PPMs: ppm/completing.md
