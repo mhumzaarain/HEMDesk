@@ -1,7 +1,7 @@
 import pytest
 from django.urls import reverse
 
-from apps.equipment.models import AccessoryType
+from apps.equipment.models import AccessoryStatus, AccessoryType
 
 pytestmark = pytest.mark.django_db
 
@@ -97,3 +97,98 @@ def test_stock_remove_below_zero_shows_error(client, engineer, accessory_type):
     accessory_type.refresh_from_db()
     assert accessory_type.stock_qty == 0
     assert b"Stock cannot go below zero." in response.content
+
+
+def test_staff_sees_fitted_list_but_no_buttons(
+    client, staff_user, equipment, fitted_accessory
+):
+    client.force_login(staff_user)
+    response = client.get(reverse("equipment_detail", args=[equipment.pk]))
+    assert response.status_code == 200
+    assert b"ECG cable" in response.content
+    assert b"Attach accessory" not in response.content
+
+
+def test_staff_cannot_open_accessory_write_pages(
+    client, staff_user, equipment, fitted_accessory
+):
+    client.force_login(staff_user)
+    urls = [
+        reverse("accessory_attach", args=[equipment.pk]),
+        reverse("accessory_edit", args=[fitted_accessory.pk]),
+        reverse("accessory_condemn", args=[fitted_accessory.pk]),
+    ]
+    for url in urls:
+        assert client.get(url).status_code == 403
+
+
+def test_engineer_attaches_via_view(client, engineer, equipment, accessory_type):
+    from apps.equipment import services
+
+    services.adjust_stock(accessory_type, engineer, 1, "Initial stock")
+    client.force_login(engineer)
+    response = client.post(
+        reverse("accessory_attach", args=[equipment.pk]),
+        {
+            "accessory_type": accessory_type.pk,
+            "serial_number": "ACC-77",
+            "from_stock": "on",
+            "notes": "",
+        },
+    )
+    assert response.status_code == 302
+    accessory_type.refresh_from_db()
+    assert accessory_type.stock_qty == 0
+    assert equipment.accessories.filter(serial_number="ACC-77").exists()
+
+
+def test_attach_at_zero_stock_shows_error(
+    client, engineer, equipment, accessory_type
+):
+    client.force_login(engineer)
+    response = client.post(
+        reverse("accessory_attach", args=[equipment.pk]),
+        {
+            "accessory_type": accessory_type.pk,
+            "serial_number": "",
+            "from_stock": "on",
+            "notes": "",
+        },
+        follow=True,
+    )
+    assert b"No backup stock available" in response.content
+    assert equipment.accessories.count() == 0
+
+
+def test_engineer_edits_accessory_via_view(client, engineer, fitted_accessory):
+    client.force_login(engineer)
+    response = client.post(
+        reverse("accessory_edit", args=[fitted_accessory.pk]),
+        {"status": "faulty", "serial_number": "", "notes": "Cracked housing."},
+    )
+    assert response.status_code == 302
+    fitted_accessory.refresh_from_db()
+    assert fitted_accessory.status == AccessoryStatus.FAULTY
+
+
+def test_edit_form_rejects_condemned_status(client, engineer, fitted_accessory):
+    client.force_login(engineer)
+    response = client.post(
+        reverse("accessory_edit", args=[fitted_accessory.pk]),
+        {"status": "condemned", "serial_number": "", "notes": ""},
+    )
+    assert response.status_code == 200
+    fitted_accessory.refresh_from_db()
+    assert fitted_accessory.status == AccessoryStatus.WORKING
+
+
+def test_engineer_condemns_accessory_via_view(client, engineer, fitted_accessory):
+    client.force_login(engineer)
+    response = client.post(
+        reverse("accessory_condemn", args=[fitted_accessory.pk]),
+        {"reason": "Cable snapped"},
+    )
+    assert response.status_code == 302
+    fitted_accessory.refresh_from_db()
+    assert fitted_accessory.status == AccessoryStatus.CONDEMNED
+    assert fitted_accessory.condemned_at is not None

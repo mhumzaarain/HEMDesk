@@ -39,4 +39,19 @@ urlpatterns = [
         views.AccessoryStockAdjustView.as_view(),
         name="accessory_stock_adjust",
     ),
+    path(
+        "<int:pk>/accessories/attach/",
+        views.AccessoryAttachView.as_view(),
+        name="accessory_attach",
+    ),
+    path(
+        "accessories/<int:pk>/edit/",
+        views.AccessoryEditView.as_view(),
+        name="accessory_edit",
+    ),
+    path(
+        "accessories/<int:pk>/condemn/",
+        views.AccessoryCondemnView.as_view(),
+        name="accessory_condemn",
+    ),
 ]

@@ -104,6 +104,34 @@
 </div>
 <div class="card mt-6 p-5">
   <div class="mb-3 flex flex-wrap items-center gap-2">
+    <h2 class="font-semibold">Accessories</h2>
+    {% if can_engineer and equipment.status != 'condemned' %}
+    <span class="ml-auto">
+      <a href="{% url 'accessory_attach' equipment.pk %}" class="btn-ghost btn-sm">Attach accessory</a>
+    </span>
+    {% endif %}
+  </div>
+  <div class="space-y-3">
+    {% for acc in accessories %}
+    <div class="flex flex-wrap items-center gap-2 rounded-lg border border-slate-100 px-4 py-3 text-sm dark:border-slate-800">
+      <span class="font-medium">{{ acc.type.name }}</span>
+      {% if acc.serial_number %}<span class="font-mono text-slate-500 dark:text-slate-400">{{ acc.serial_number }}</span>{% endif %}
+      {% if acc.status == 'working' %}<span class="badge-working">{{ acc.get_status_display }}</span>
+      {% elif acc.status == 'faulty' %}<span class="badge-repair">{{ acc.get_status_display }}</span>
+      {% else %}<span class="badge-danger">{{ acc.get_status_display }}</span>{% endif %}
+      {% if acc.notes %}<span class="text-slate-500 dark:text-slate-400">"{{ acc.notes }}"</span>{% endif %}
+      {% if can_engineer and equipment.status != 'condemned' and acc.status != 'condemned' %}
+      <span class="ml-auto flex gap-2">
+        <a href="{% url 'accessory_edit' acc.pk %}" class="btn-ghost btn-sm">Edit</a>
+        <a href="{% url 'accessory_condemn' acc.pk %}" class="btn-danger btn-sm">Condemn…</a>
+      </span>
+      {% endif %}
+    </div>
+    {% empty %}<p class="text-sm text-slate-500 dark:text-slate-400">No accessories recorded.</p>{% endfor %}
+  </div>
+</div>
+<div class="card mt-6 p-5">
+  <div class="mb-3 flex flex-wrap items-center gap-2">
     <h2 class="font-semibold">Preventive Maintenance</h2>
     {% if ppm_schedule and ppm_schedule.active %}
       {% if ppm_schedule.is_overdue %}<span class="badge-danger">Overdue</span>

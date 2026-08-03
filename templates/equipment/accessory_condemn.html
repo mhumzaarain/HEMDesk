@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Condemn accessory{% endblock %}
+{% block page_title %}Accessories{% endblock %}
+{% block content %}
+<div class="card mx-auto max-w-xl overflow-hidden">
+  <div class="border-b border-red-200 bg-red-50 px-6 py-4 dark:border-red-500/30 dark:bg-red-500/10">
+    <h1 class="text-xl font-bold text-red-800 dark:text-red-300">Condemn accessory</h1>
+    <p class="mt-1 text-sm text-red-700/80 dark:text-red-300/80">This cannot be undone.</p>
+  </div>
+  <div class="p-6">
+    <p class="mb-5 text-sm text-slate-600 dark:text-slate-300">
+      {{ accessory.type.name }} on {{ accessory.equipment.name }}
+      {{ accessory.equipment.serial_number }} will be permanently retired.
+      Its record is preserved forever.
+    </p>
+    <form method="post" class="space-y-4">
+      {% csrf_token %}
+      {% for field in form %}
+      <div>
+        <label class="mb-1 block text-sm font-medium" for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% for error in field.errors %}<p class="mt-1 text-sm text-red-700 dark:text-red-400">{{ error }}</p>{% endfor %}
+      </div>
+      {% endfor %}
+      <div class="flex justify-end gap-2 border-t border-slate-100 pt-4 dark:border-slate-800">
+        <a href="{% url 'equipment_detail' accessory.equipment_id %}" class="btn-ghost">Cancel</a>
+        <button class="btn-danger">Condemn permanently</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
