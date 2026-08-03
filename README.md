@@ -100,9 +100,12 @@ admin password; all real people are managed in the app.
 
 ## Docs
 
-- Design spec: `docs/superpowers/specs/`
-- Implementation plan: `docs/superpowers/plans/`
-- Deferred work & pre-production hardening: `docs/FOLLOWUPS.md`
+**📚 Full documentation:** https://mhumzaarain.github.io/Hospital-Medical-Equipment-Management-System-Biomedical-CMMS-/
+
+Internal design specs, implementation plans, and deferred-work notes are
+intentionally kept out of `main` and live under `docs/superpowers/` and
+`docs/FOLLOWUPS.md` on the `feature/accessory-replacement` branch
+(maintainers only).
 
 ## License
 
