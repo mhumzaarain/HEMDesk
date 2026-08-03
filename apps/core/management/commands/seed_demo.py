@@ -10,10 +10,12 @@ from django.utils import timezone
 from apps.accounts.models import Roles
 from apps.equipment.models import (
     Accessory,
+    AccessoryEvent,
     AccessoryStatus,
     AccessoryType,
     Department,
     Equipment,
+    EquipmentStatus,
     StatusEvent,
 )
 from apps.equipment.services import (
@@ -21,6 +23,8 @@ from apps.equipment.services import (
     attach_accessory,
     condemn_equipment,
     create_accessory_type,
+    repair_accessory,
+    replace_accessory,
     update_accessory,
 )
 from apps.maintenance.models import (
@@ -31,6 +35,7 @@ from apps.maintenance.models import (
     PPMRecord,
     PPMSchedule,
     WorkOrder,
+    WorkOrderStatus,
 )
 from apps.maintenance.services import (
     add_remark,
@@ -290,11 +295,83 @@ class Command(BaseCommand):
                     remarks="Routine PPM completed.",
                 )
 
+        # accessory replacement / repair history on completed work orders.
+        # Placed last on purpose: random draws here cannot shift the earlier
+        # seeded world. Services require an ACTIVE work order, so each chosen
+        # completed WO is flipped to in_progress, the event is recorded
+        # through the real service, and the WO is flipped back (one at a
+        # time — no other active WOs exist here, so the one-active-WO
+        # constraint cannot trip). Only WORKING accessories are picked, so
+        # the single pre-seeded faulty SpO2 probe stays the only faulty one.
+        completed_pool = list(
+            WorkOrder.objects.filter(
+                status=WorkOrderStatus.COMPLETED,
+                equipment__accessories__isnull=False,
+            )
+            .exclude(equipment__status=EquipmentStatus.CONDEMNED)
+            .distinct()
+            .order_by("opened_at")
+        )
+        replaced = repaired = 0
+        for wo in completed_pool:
+            if replaced >= 6 and repaired >= 3:
+                break
+            accessory = (
+                wo.equipment.accessories.filter(status=AccessoryStatus.WORKING)
+                .select_related("type")
+                .order_by("id")
+                .first()
+            )
+            if accessory is None:
+                continue
+            engineer = random.choice(engineers)
+            WorkOrder.objects.filter(pk=wo.pk).update(
+                status=WorkOrderStatus.IN_PROGRESS
+            )
+            wo.refresh_from_db()
+            event = None
+            if replaced < 6 and accessory.type.stock_qty > 0:
+                event = replace_accessory(
+                    accessory,
+                    engineer,
+                    wo,
+                    remark="Worn out; replaced from backup stock.",
+                )
+                replaced += 1
+                backdate(
+                    Accessory, accessory.pk, condemned_at=wo.repair_completed_at
+                )
+            elif repaired < 3:
+                update_accessory(
+                    accessory, engineer, status=AccessoryStatus.FAULTY
+                )
+                event = repair_accessory(
+                    accessory, engineer, wo, remark="Connector re-soldered."
+                )
+                repaired += 1
+            WorkOrder.objects.filter(pk=wo.pk).update(
+                status=WorkOrderStatus.COMPLETED
+            )
+            if event is not None:
+                backdate(
+                    AccessoryEvent, event.pk, created_at=wo.repair_completed_at
+                )
+
+        # make the restock strip visible out of the box: one type at zero
+        low_type = (
+            AccessoryType.objects.filter(stock_qty__gt=0).order_by("id").first()
+        )
+        if low_type is not None:
+            adjust_stock(
+                low_type, admin, -low_type.stock_qty, "Issued to wards as spares"
+            )
+
         self.stdout.write(
             self.style.SUCCESS(
                 f"Seeded {Equipment.objects.count()} devices, "
                 f"{AccessoryType.objects.count()} accessory types, "
                 f"{Accessory.objects.count()} accessories, "
+                f"{AccessoryEvent.objects.count()} accessory events, "
                 f"{Complaint.objects.count()} complaints, "
                 f"{WorkOrder.objects.count()} work orders, "
                 f"{PPMSchedule.objects.count()} PPM schedules, "
