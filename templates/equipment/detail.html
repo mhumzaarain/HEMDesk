@@ -114,6 +114,9 @@
     <span class="ml-auto flex gap-2">
       <a href="{% url 'ppm_schedule_edit' equipment.pk %}" class="btn-ghost btn-sm">
         {% if ppm_schedule %}Edit schedule{% else %}Set schedule{% endif %}</a>
+      {% if ppm_schedule and ppm_schedule.active %}
+      <a href="{% url 'ppm_complete' ppm_schedule.pk %}" class="btn-warn btn-sm">Record PPM</a>
+      {% endif %}
     </span>
     {% endif %}
   </div>

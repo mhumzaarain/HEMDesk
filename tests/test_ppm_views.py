@@ -63,3 +63,79 @@ class TestEquipmentDetailPanel:
         )
         assert b"Preventive Maintenance" in resp.content
         assert b"Set schedule" not in resp.content
+
+
+class TestPPMCompleteView:
+    def test_get_renders_form(self, client, engineer, schedule):
+        client.force_login(engineer)
+        resp = client.get(reverse("ppm_complete", args=[schedule.pk]))
+        assert resp.status_code == 200
+        assert b"outcome" in resp.content
+
+    def test_post_passed_records_and_redirects(self, client, engineer, schedule):
+        client.force_login(engineer)
+        resp = client.post(
+            reverse("ppm_complete", args=[schedule.pk]),
+            {
+                "performed_at": timezone.localdate().isoformat(),
+                "outcome": "passed",
+                "remarks": "Battery and alarms OK.",
+            },
+        )
+        assert resp.status_code == 302
+        record = schedule.records.get()
+        assert record.outcome == "passed"
+        schedule.refresh_from_db()
+        assert schedule.next_due > timezone.localdate()
+
+    def test_post_failed_with_open_wo_links_work_order(
+        self, client, engineer, schedule
+    ):
+        client.force_login(engineer)
+        resp = client.post(
+            reverse("ppm_complete", args=[schedule.pk]),
+            {
+                "performed_at": timezone.localdate().isoformat(),
+                "outcome": "failed",
+                "open_work_order": "on",
+            },
+        )
+        assert resp.status_code == 302
+        record = schedule.records.get()
+        assert record.work_order is not None
+
+    def test_open_wo_with_passed_outcome_rejected_by_form(
+        self, client, engineer, schedule
+    ):
+        client.force_login(engineer)
+        resp = client.post(
+            reverse("ppm_complete", args=[schedule.pk]),
+            {
+                "performed_at": timezone.localdate().isoformat(),
+                "outcome": "passed",
+                "open_work_order": "on",
+            },
+        )
+        assert resp.status_code == 200  # re-rendered with form error
+        assert schedule.records.count() == 0
+
+    def test_blocked_when_wo_active_shows_error(
+        self, client, engineer, schedule, make_work_order
+    ):
+        make_work_order(eq=schedule.equipment)
+        client.force_login(engineer)
+        resp = client.post(
+            reverse("ppm_complete", args=[schedule.pk]),
+            {
+                "performed_at": timezone.localdate().isoformat(),
+                "outcome": "passed",
+            },
+            follow=True,
+        )
+        assert b"under repair" in resp.content
+        assert schedule.records.count() == 0
+
+    def test_staff_blocked(self, client, staff_user, schedule):
+        client.force_login(staff_user)
+        resp = client.get(reverse("ppm_complete", args=[schedule.pk]))
+        assert resp.status_code == 403

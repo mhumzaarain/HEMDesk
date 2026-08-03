@@ -37,4 +37,5 @@ urlpatterns = [
         views.ppm_schedule_edit,
         name="ppm_schedule_edit",
     ),
+    path("ppm/<int:schedule_pk>/complete/", views.ppm_complete, name="ppm_complete"),
 ]

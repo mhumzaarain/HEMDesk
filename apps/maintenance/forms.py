@@ -10,6 +10,7 @@ from .models import (
     ComplaintStatus,
     FaultCategory,
     PPMInterval,
+    PPMOutcome,
     RemarkKind,
 )
 
@@ -113,3 +114,33 @@ class PPMScheduleForm(forms.Form):
         widget=forms.DateInput(attrs={"type": "date", "class": INPUT})
     )
     active = forms.BooleanField(required=False, initial=True)
+
+
+class PPMCompleteForm(forms.Form):
+    performed_at = forms.DateField(
+        widget=forms.DateInput(attrs={"type": "date", "class": INPUT})
+    )
+    outcome = forms.ChoiceField(
+        choices=PPMOutcome.choices, widget=forms.RadioSelect
+    )
+    engineers = forms.ModelMultipleChoiceField(
+        queryset=get_user_model().objects.filter(
+            role__in=[Roles.ENGINEER, Roles.ADMIN], is_active=True
+        ),
+        required=False,
+        widget=forms.CheckboxSelectMultiple,
+        help_text="Tick every engineer who performed this PPM.",
+    )
+    remarks = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={"rows": 3, "class": INPUT}),
+    )
+    open_work_order = forms.BooleanField(required=False)
+
+    def clean(self):
+        data = super().clean()
+        if data.get("open_work_order") and data.get("outcome") != PPMOutcome.FAILED:
+            raise forms.ValidationError(
+                "A work order can only be opened when the PPM failed."
+            )
+        return data

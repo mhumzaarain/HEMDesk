@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from apps.accounts.models import Roles
@@ -14,10 +15,11 @@ from .forms import (
     CloseComplaintForm,
     ComplaintForm,
     CompleteWorkOrderForm,
+    PPMCompleteForm,
     PPMScheduleForm,
     RemarkForm,
 )
-from .models import Complaint, ComplaintStatus, WorkOrder
+from .models import Complaint, ComplaintStatus, PPMSchedule, WorkOrder
 
 ENGINEER_ROLES = (Roles.ENGINEER, Roles.ADMIN)
 
@@ -294,4 +296,36 @@ def ppm_schedule_edit(request, equipment_pk):
         request,
         "maintenance/ppm_schedule_form.html",
         {"equipment": equipment, "form": form, "schedule": schedule},
+    )
+
+
+@login_required
+def ppm_complete(request, schedule_pk):
+    _require_engineer(request.user)
+    schedule = get_object_or_404(
+        PPMSchedule.objects.select_related("equipment"), pk=schedule_pk
+    )
+    form = PPMCompleteForm(
+        request.POST or None, initial={"performed_at": timezone.localdate()}
+    )
+    if request.method == "POST" and form.is_valid():
+        try:
+            services.complete_ppm(
+                schedule,
+                request.user,
+                form.cleaned_data["outcome"],
+                form.cleaned_data["performed_at"],
+                engineers=form.cleaned_data["engineers"],
+                remarks=form.cleaned_data["remarks"],
+                open_wo=form.cleaned_data["open_work_order"],
+            )
+        except (DomainError, ValueError) as exc:
+            messages.error(request, str(exc))
+        else:
+            messages.success(request, "PPM recorded.")
+        return redirect("equipment_detail", pk=schedule.equipment_id)
+    return render(
+        request,
+        "maintenance/ppm_complete.html",
+        {"schedule": schedule, "form": form},
     )
