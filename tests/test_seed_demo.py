@@ -2,7 +2,14 @@ import pytest
 from django.core.management import call_command
 
 from apps.core.models import AuditLog
-from apps.equipment.models import Equipment, EquipmentStatus, StatusEvent
+from apps.equipment.models import (
+    Accessory,
+    AccessoryStatus,
+    AccessoryType,
+    Equipment,
+    EquipmentStatus,
+    StatusEvent,
+)
 from apps.maintenance.models import Complaint, WorkOrder
 
 pytestmark = pytest.mark.django_db
@@ -14,6 +21,10 @@ def test_seed_demo_builds_world():
     assert Equipment.objects.filter(is_critical_asset=True).count() >= 4
     assert Equipment.objects.filter(status=EquipmentStatus.CONDEMNED).count() >= 2
     assert Complaint.objects.count() >= 40
+    assert AccessoryType.objects.count() == 6
+    assert not AccessoryType.objects.filter(stock_qty=0).exists()
+    assert Accessory.objects.count() >= 10
+    assert Accessory.objects.filter(status=AccessoryStatus.FAULTY).count() == 1
     assert WorkOrder.objects.filter(status="completed").count() >= 20
     assert StatusEvent.objects.count() > 0
     assert AuditLog.objects.count() > 0

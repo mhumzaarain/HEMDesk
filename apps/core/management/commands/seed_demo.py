@@ -8,8 +8,21 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 
 from apps.accounts.models import Roles
-from apps.equipment.models import Department, Equipment, StatusEvent
-from apps.equipment.services import condemn_equipment
+from apps.equipment.models import (
+    Accessory,
+    AccessoryStatus,
+    AccessoryType,
+    Department,
+    Equipment,
+    StatusEvent,
+)
+from apps.equipment.services import (
+    adjust_stock,
+    attach_accessory,
+    condemn_equipment,
+    create_accessory_type,
+    update_accessory,
+)
 from apps.maintenance.models import (
     Complaint,
     FaultCategory,
@@ -57,6 +70,14 @@ DELAY_TEXTS = [
     "Waiting for spare part from vendor.",
     "Part shipment delayed due to holidays.",
     "Awaiting quotation approval from procurement.",
+]
+ACCESSORY_TYPES = [
+    ("ECG cable", "Patient Monitor Mindray uMEC 12", 4),
+    ("SpO2 probe", "Patient Monitor Mindray uMEC 12", 3),
+    ("IBP probe", "Patient Monitor Mindray uMEC 12", 2),
+    ("NIBP cuff", "Patient Monitor Mindray uMEC 12", 5),
+    ("Ventilator circuit", "Ventilator Hamilton C2", 5),
+    ("ECG cable", "Defibrillator Zoll R Series", 2),
 ]
 
 
@@ -142,6 +163,36 @@ class Command(BaseCommand):
                         - timedelta(days=random.randint(100, 400)),
                     )
                 )
+
+        # accessory catalog, backup stock and fitted units. Deterministic on
+        # purpose: consuming `random` here would shift the seeded history.
+        type_by_key = {}
+        for type_name, equipment_name, qty in ACCESSORY_TYPES:
+            accessory_type = create_accessory_type(
+                admin, name=type_name, equipment_name=equipment_name
+            )
+            adjust_stock(accessory_type, admin, qty, "Initial store stock")
+            type_by_key[(type_name, equipment_name)] = accessory_type
+
+        faulty_seeded = False
+        for device in devices:
+            for type_name, equipment_name, _qty in ACCESSORY_TYPES:
+                if not equipment_name.startswith(device.name):
+                    continue
+                accessory = attach_accessory(
+                    device,
+                    admin,
+                    type_by_key[(type_name, equipment_name)],
+                    from_stock=False,
+                )
+                if not faulty_seeded and type_name == "SpO2 probe":
+                    update_accessory(
+                        accessory,
+                        admin,
+                        status=AccessoryStatus.FAULTY,
+                        notes="Intermittent readings; replacement requested.",
+                    )
+                    faulty_seeded = True
 
         # ~90 days of complaint -> repair history through the real services
         for day_offset in range(90, 0, -2):
@@ -242,6 +293,8 @@ class Command(BaseCommand):
         self.stdout.write(
             self.style.SUCCESS(
                 f"Seeded {Equipment.objects.count()} devices, "
+                f"{AccessoryType.objects.count()} accessory types, "
+                f"{Accessory.objects.count()} accessories, "
                 f"{Complaint.objects.count()} complaints, "
                 f"{WorkOrder.objects.count()} work orders, "
                 f"{PPMSchedule.objects.count()} PPM schedules, "
