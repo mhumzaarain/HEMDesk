@@ -176,3 +176,19 @@ def test_update_refused_on_condemned_equipment(
     equipment.save(update_fields=["status"])
     with pytest.raises(AccessoryStateError):
         services.update_accessory(fitted_accessory, engineer, notes="x")
+
+
+def test_update_type_cannot_touch_stock(accessory_type, engineer):
+    with pytest.raises(AccessoryStateError):
+        services.update_accessory_type(accessory_type, engineer, stock_qty=999)
+    accessory_type.refresh_from_db()
+    assert accessory_type.stock_qty == 0
+
+
+def test_update_accessory_cannot_set_condemned(fitted_accessory, engineer):
+    with pytest.raises(AccessoryStateError):
+        services.update_accessory(
+            fitted_accessory, engineer, status=AccessoryStatus.CONDEMNED
+        )
+    fitted_accessory.refresh_from_db()
+    assert fitted_accessory.status == AccessoryStatus.WORKING

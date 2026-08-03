@@ -161,6 +161,10 @@ def create_accessory_type(actor, **fields):
 def update_accessory_type(accessory_type, actor, **fields):
     """Catalog fields only — stock_qty is changed exclusively by adjust_stock."""
     _require_engineer_or_admin(actor)
+    if "stock_qty" in fields:
+        raise AccessoryStateError(
+            "Stock is adjusted only through adjust_stock."
+        )
     changes = {}
     for name, value in fields.items():
         old = getattr(accessory_type, name)
@@ -241,6 +245,10 @@ def attach_accessory(
 @transaction.atomic
 def update_accessory(accessory, actor, **fields):
     _require_engineer_or_admin(actor)
+    if fields.get("status") == AccessoryStatus.CONDEMNED:
+        raise AccessoryStateError(
+            "Condemn accessories through condemn_accessory."
+        )
     accessory.refresh_from_db()
     if accessory.status == AccessoryStatus.CONDEMNED:
         raise AccessoryStateError(
