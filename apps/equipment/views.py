@@ -258,6 +258,15 @@ class EquipmentImportConfirmView(RoleRequiredMixin, View):
         return redirect("equipment_list")
 
 
+def _equipment_name_options():
+    combos = (
+        Equipment.objects.values_list("name", "manufacturer", "model_number")
+        .distinct()
+        .order_by("name", "manufacturer", "model_number")
+    )
+    return [" ".join(part for part in combo if part) for combo in combos]
+
+
 class AccessoryTypeListView(RoleRequiredMixin, ListView):
     allowed_roles = ENGINEER_ROLES
     template_name = "equipment/accessory_type_list.html"
@@ -287,6 +296,7 @@ class AccessoryTypeCreateView(RoleRequiredMixin, View):
                 "form_title": "Add accessory type",
                 "form_subtitle": "Define a catalog entry once; reuse it everywhere.",
                 "cancel_url": reverse("accessory_type_list"),
+                "equipment_name_options": _equipment_name_options(),
             },
         )
 
@@ -303,6 +313,7 @@ class AccessoryTypeCreateView(RoleRequiredMixin, View):
                         "Define a catalog entry once; reuse it everywhere."
                     ),
                     "cancel_url": reverse("accessory_type_list"),
+                    "equipment_name_options": _equipment_name_options(),
                 },
             )
         services.create_accessory_type(request.user, **form.cleaned_data)
@@ -322,6 +333,7 @@ class AccessoryTypeEditView(RoleRequiredMixin, View):
                 "form_title": f"Edit {accessory_type.name}",
                 "form_subtitle": accessory_type.equipment_name,
                 "cancel_url": reverse("accessory_type_list"),
+                "equipment_name_options": _equipment_name_options(),
             },
         )
 

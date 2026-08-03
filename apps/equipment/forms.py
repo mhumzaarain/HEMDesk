@@ -52,6 +52,9 @@ class AccessoryTypeForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         for field in self.fields.values():
             field.widget.attrs.setdefault("class", INPUT)
+        self.fields["equipment_name"].widget.attrs.setdefault(
+            "list", "equipment-name-options"
+        )
 
 
 class StockAdjustForm(forms.Form):
