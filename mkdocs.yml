@@ -61,3 +61,6 @@ nav:
   - Preventive Maintenance:
       - PPM schedules: ppm/schedules.md
       - Completing due PPMs: ppm/completing.md
+  - Dashboard & Reports:
+      - Reading the dashboard: dashboard-reports/dashboard.md
+      - Monthly reports: dashboard-reports/reports.md
