@@ -46,3 +46,10 @@ nav:
   - Getting Started:
       - Logging in & roles: getting-started/logging-in.md
       - A tour of the app: getting-started/tour.md
+  - Equipment:
+      - Browse & search: equipment/browse-and-search.md
+      - Register equipment: equipment/register.md
+      - Edit & condemn: equipment/edit-and-condemn.md
+      - Import from Excel or CSV: equipment/import.md
+      - Accessories & stock: equipment/accessories.md
+      - Accessory faults & replacement: equipment/accessory-faults.md
