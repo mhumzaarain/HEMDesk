@@ -64,3 +64,7 @@ nav:
   - Dashboard & Reports:
       - Reading the dashboard: dashboard-reports/dashboard.md
       - Monthly reports: dashboard-reports/reports.md
+  - Developer:
+      - Architecture overview: developer/architecture.md
+      - Data model: developer/data-model.md
+      - Setup & contributing: developer/setup.md
