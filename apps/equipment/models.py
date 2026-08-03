@@ -135,3 +135,53 @@ class Accessory(NoDeleteModel):
 
     def __str__(self):
         return f"{self.type.name} on {self.equipment.serial_number}"
+
+
+class AccessoryEventKind(models.TextChoices):
+    REPLACED = "replaced", "Replaced"
+    REPAIRED = "repaired", "Repaired"
+
+
+class AccessoryEvent(AppendOnlyModel):
+    """One replace/repair of an accessory, always under a work order.
+    The single source for the WO log, per-equipment counts and the
+    dashboard ranking."""
+
+    kind = models.CharField(max_length=20, choices=AccessoryEventKind.choices)
+    work_order = models.ForeignKey(
+        "maintenance.WorkOrder",
+        on_delete=models.PROTECT,
+        related_name="accessory_events",
+    )
+    equipment = models.ForeignKey(
+        Equipment, on_delete=models.PROTECT, related_name="accessory_events"
+    )
+    accessory_type = models.ForeignKey(
+        AccessoryType, on_delete=models.PROTECT, related_name="events"
+    )
+    old_accessory = models.ForeignKey(
+        Accessory, on_delete=models.PROTECT, related_name="events_as_old"
+    )
+    new_accessory = models.ForeignKey(
+        Accessory,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="events_as_new",
+    )
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="accessory_events",
+    )
+    remark = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return (
+            f"{self.get_kind_display()} {self.accessory_type.name} "
+            f"(WO #{self.work_order_id})"
+        )
