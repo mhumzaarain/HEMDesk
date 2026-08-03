@@ -2,6 +2,8 @@
 
 ## Quick start
 
+Requires [uv](https://docs.astral.sh/uv/) and Docker (for Postgres).
+
 ```bash
 docker compose up -d db
 uv sync

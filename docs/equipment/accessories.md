@@ -43,3 +43,5 @@ This is the only way stock changes by hand. Stock can never go below zero.
 5. Add **Notes** if needed and save.
 
 Taking from stock decrements the type's store count, and fails if stock is at zero.
+
+**What happens next:** every stock adjustment and attachment is logged with its reason. When a type's store count hits zero it appears in the **Restock needed** strip on the inventory page, and replacement activity feeds the dashboard's accessory panel.

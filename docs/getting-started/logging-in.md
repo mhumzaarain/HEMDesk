@@ -30,7 +30,7 @@ You land on the home screen, greeted by name and your employee ID, with a set of
     | --- | --- | --- |
     | `admin` | Admin | `EMP-900` |
     | `engineer1`, `engineer2`, `engineer3` | Biomedical Engineer | `EMP-101`–`EMP-103` |
-    | `staff1`–`staff10` | Staff | `EMP-001`–`EMP-010` |
+    | `staff1`–`staff10` | Staff | `EMP-001`–`EMP-009`, `EMP-0010` |
 
     All demo accounts share the password `demo1234`.
 
