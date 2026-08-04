@@ -1,7 +1,9 @@
 site_name: HEMDesk Documentation
 site_description: User and developer documentation for the Biomedical CMMS
-site_url: https://mhumzaarain.github.io/Hospital-Medical-Equipment-Management-System-Biomedical-CMMS-/
-repo_url: https://github.com/mhumzaarain/Hospital-Medical-Equipment-Management-System-Biomedical-CMMS-
+site_author: Muhammad Humza Arain
+copyright: Copyright &copy; 2026 Muhammad Humza Arain
+site_url: https://mhumzaarain.github.io/HEMDesk./
+repo_url: https://github.com/mhumzaarain/HEMDesk.
 repo_name: GitHub
 
 theme:

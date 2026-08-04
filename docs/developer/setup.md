@@ -20,4 +20,4 @@ uv run python manage.py runserver
 
 ## Conventions
 
-For coding conventions and the pull request process, see [CONTRIBUTING.md on GitHub](https://github.com/mhumzaarain/Hospital-Medical-Equipment-Management-System-Biomedical-CMMS-/blob/main/CONTRIBUTING.md).
+For coding conventions and the pull request process, see [CONTRIBUTING.md on GitHub](https://github.com/mhumzaarain/HEMDesk./blob/main/CONTRIBUTING.md).
