@@ -33,12 +33,16 @@ People who simply want a new password can do it themselves via **Change password
 
 ## The first admin account
 
-On a fresh install there are no accounts yet. Create the initial admin either way:
+On a fresh install there are no accounts yet — nobody can log in, so the very first admin can't be created inside the app. Whoever deploys HEMDesk (typically the IT person or biomedical department lead setting up the server) creates it from the command line, either way:
 
 - **Interactive:** `uv run python manage.py createsuperuser` — it prompts for username, employee ID, and password. The account can open `/admin/`, but its in-app **Role** defaults to Staff — open your own user in the admin and set Role to **Admin** to get the full sidebar.
 - **Automated (deploys/containers):** set `SUPERUSER_USERNAME`, `SUPERUSER_PASSWORD` (and optionally `SUPERUSER_EMAIL`, `SUPERUSER_EMPLOYEE_ID`) in `.env` and run `python manage.py create_superuser`. It's idempotent and sets the role to Admin for you.
 
-Every other account is then created inside the app as described above.
+Every other account — staff, engineers, and further admins alike — is then created inside the app as described above.
+
+## Can there be more than one admin?
+
+Yes. Admin is just a role, not a single reserved account. Any existing admin can create more admins: register the user as usual and set their **Role** to Admin, and tick **Staff status** if they should also manage accounts in the admin site. Having at least two admins is a good idea — if one is unavailable or locked out, the other can still reset passwords and manage accounts.
 
 ## What else lives in the admin site
 
