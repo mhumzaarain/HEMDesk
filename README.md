@@ -3,8 +3,8 @@
 # Biomedical CMMS
 
 Hospital Medical Equipment Management System — track medical equipment and
-manage malfunction complaints and repairs. Phase 1: a complete, server-rendered
-Django CMMS (no AI features yet).
+manage malfunction complaints and repairs. A complete, server-rendered
+Django CMMS.
 
 Everything related to hospital medical equipment lives here, in one place:
 
@@ -51,7 +51,7 @@ uv run python manage.py seed_demo   # optional: 90 days of demo data
 uv run python manage.py runserver
 ```
 
-## AI features (Phase 2)
+## AI features (upcoming)
 
 The app talks to any OpenAI-compatible LLM endpoint — pick one via `.env`:
 
