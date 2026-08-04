@@ -6,6 +6,20 @@ Hospital Medical Equipment Management System — track medical equipment and
 manage malfunction complaints and repairs. Phase 1: a complete, server-rendered
 Django CMMS (no AI features yet).
 
+Everything related to hospital medical equipment lives here, in one place:
+
+- **Equipment management** — a searchable registry of every device; register
+  one at a time or bulk-import from Excel/CSV, edit, and condemn end-of-life
+  equipment.
+- **Accessory management** — accessory types and stock levels, attaching
+  accessories to devices, and handling accessory faults and replacements.
+- **Complaints & repairs** — ward staff lodge complaints, engineers work them
+  through a live queue and work orders, and reporters confirm the fix.
+- **Preventive maintenance** — PPM schedules per device with a due list so
+  nothing gets missed.
+- **Dashboard & reports** — 30-day KPIs, downtime and fault trends, and
+  downloadable reports.
+
 **📚 Full documentation:** https://mhumzaarain.github.io/Hospital-Medical-Equipment-Management-System-Biomedical-CMMS-/ (user guide + developer overview).
 
 ## Screenshots
