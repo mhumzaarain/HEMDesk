@@ -20,7 +20,7 @@ Everything related to hospital medical equipment lives here, in one place:
 - **Dashboard & reports** — 30-day KPIs, downtime and fault trends, and
   downloadable reports.
 
-**📚 Full documentation:** https://mhumzaarain.github.io/HEMDesk./ (user guide + developer overview).
+**📚 Full documentation:** https://mhumzaarain.github.io/HEMDesk/ (user guide + developer overview).
 
 ## Screenshots
 
@@ -41,7 +41,7 @@ Procrastinate (Postgres task queue) · uv for dependency management.
 
 ## Local development
 
-See the [setup guide](https://mhumzaarain.github.io/HEMDesk./developer/setup/) for prerequisites and contributing details.
+See the [setup guide](https://mhumzaarain.github.io/HEMDesk/developer/setup/) for prerequisites and contributing details.
 
 ```bash
 docker compose up -d db          # start Postgres
@@ -119,7 +119,7 @@ admin password; all real people are managed in the app.
 
 ## Docs
 
-**📚 Full documentation:** https://mhumzaarain.github.io/HEMDesk./
+**📚 Full documentation:** https://mhumzaarain.github.io/HEMDesk/
 
 Internal design specs, implementation plans, and deferred-work notes are
 intentionally kept out of `main` and live under `docs/superpowers/` and
