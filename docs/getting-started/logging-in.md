@@ -11,7 +11,7 @@ There is no self-registration. An admin creates your account for you, and it com
 - An **employee ID** (for example `EMP-101`), shown next to your name once you're signed in.
 - A **role**: Staff, Biomedical Engineer, or Admin. Your role decides which sidebar links you see.
 
-If you don't have credentials yet, ask an admin to create your account.
+If you don't have credentials yet, ask an admin to create your account. (Admins: see [Managing user accounts](../admin/user-accounts.md).)
 
 ## Logging in
 

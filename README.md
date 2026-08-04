@@ -3,10 +3,24 @@
 # Biomedical CMMS
 
 Hospital Medical Equipment Management System — track medical equipment and
-manage malfunction complaints and repairs. Phase 1: a complete, server-rendered
-Django CMMS (no AI features yet).
+manage malfunction complaints and repairs. A complete, server-rendered
+Django CMMS.
 
-**📚 Full documentation:** https://mhumzaarain.github.io/Hospital-Medical-Equipment-Management-System-Biomedical-CMMS-/ (user guide + developer overview).
+Everything related to hospital medical equipment lives here, in one place:
+
+- **Equipment management** — a searchable registry of every device; register
+  one at a time or bulk-import from Excel/CSV, edit, and condemn end-of-life
+  equipment.
+- **Accessory management** — accessory types and stock levels, attaching
+  accessories to devices, and handling accessory faults and replacements.
+- **Complaints & repairs** — ward staff lodge complaints, engineers work them
+  through a live queue and work orders, and reporters confirm the fix.
+- **Preventive maintenance** — PPM schedules per device with a due list so
+  nothing gets missed.
+- **Dashboard & reports** — 30-day KPIs, downtime and fault trends, and
+  downloadable reports.
+
+**📚 Full documentation:** https://mhumzaarain.github.io/HEMDesk/ (user guide + developer overview).
 
 ## Screenshots
 
@@ -27,7 +41,7 @@ Procrastinate (Postgres task queue) · uv for dependency management.
 
 ## Local development
 
-See the [setup guide](https://mhumzaarain.github.io/Hospital-Medical-Equipment-Management-System-Biomedical-CMMS-/developer/setup/) for prerequisites and contributing details.
+See the [setup guide](https://mhumzaarain.github.io/HEMDesk/developer/setup/) for prerequisites and contributing details.
 
 ```bash
 docker compose up -d db          # start Postgres
@@ -37,7 +51,7 @@ uv run python manage.py seed_demo   # optional: 90 days of demo data
 uv run python manage.py runserver
 ```
 
-## AI features (Phase 2)
+## AI features (upcoming)
 
 The app talks to any OpenAI-compatible LLM endpoint — pick one via `.env`:
 
@@ -105,7 +119,7 @@ admin password; all real people are managed in the app.
 
 ## Docs
 
-**📚 Full documentation:** https://mhumzaarain.github.io/Hospital-Medical-Equipment-Management-System-Biomedical-CMMS-/
+**📚 Full documentation:** https://mhumzaarain.github.io/HEMDesk/
 
 Internal design specs, implementation plans, and deferred-work notes are
 intentionally kept out of `main` and live under `docs/superpowers/` and
