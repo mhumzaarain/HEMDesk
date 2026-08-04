@@ -64,6 +64,8 @@ nav:
   - Dashboard & Reports:
       - Reading the dashboard: dashboard-reports/dashboard.md
       - Monthly reports: dashboard-reports/reports.md
+  - Administration:
+      - Managing user accounts: admin/user-accounts.md
   - Developer:
       - Architecture overview: developer/architecture.md
       - Data model: developer/data-model.md
