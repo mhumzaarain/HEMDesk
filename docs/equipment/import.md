@@ -14,6 +14,8 @@ Import is a two-step flow: upload and preview, then confirm.
 4. If you need the format, download the sample CSV linked on the page.
 5. Click **Preview import**.
 
+![Import equipment form with file upload and Create missing departments option](../assets/equipment-import.png)
+
 Required columns: `name`, `serial_number`, `department`. Optional columns: `manufacturer`, `vendor`, `model_number`, `purchase_date`, `installation_date`, `is_critical_asset`. Dates must be `YYYY-MM-DD`; the boolean column accepts `true`, `yes`, or `1`. Any extra columns in your file are kept on the device record.
 
 ## Step 2: Preview
@@ -25,7 +27,7 @@ The preview page shows a banner: "N row(s) will be created; M have errors and wi
 - `bad purchase_date (want YYYY-MM-DD)`
 - a duplicate serial number within the file itself
 
-<!-- screenshot: docs/assets/screenshots/equipment-import-confirm.png -->
+<!-- screenshot: docs/assets/equipment-import-confirm.png -->
 
 Click **Start over** to upload a different file, or **Import N row(s)** to confirm.
 

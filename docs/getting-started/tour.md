@@ -2,6 +2,8 @@
 
 Use this page to get your bearings the first time you sign in — where things live and what the home screen offers.
 
+![Home screen with the sidebar, top bar, and role cards](../assets/landing-page.png)
+
 ## Sidebar
 
 The **HEMDESK** brand at the top of the sidebar always links back to the home screen. Below it, links are grouped by heading:

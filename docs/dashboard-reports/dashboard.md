@@ -4,7 +4,7 @@
 
 Use this to get a picture of the last 30 days at a glance — repair throughput, equipment health, and where attention is needed — without digging through individual work orders and complaints.
 
-<!-- screenshot: docs/assets/screenshots/dashboard.png -->
+![Dashboard with KPI tiles, charts, and panels for the last 30 days](../assets/dashboard.png)
 
 ## KPI tiles
 

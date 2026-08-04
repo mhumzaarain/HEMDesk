@@ -10,6 +10,8 @@ Use this to see and act on complaints staff have lodged.
     - **Open WO** — starts a work order for that device. This also scoops up any other open complaints already lodged on the same device.
     - **Close…** — closes the complaint without a work order.
 
+![Complaint queue with live-updating rows and Open WO / Close actions](../assets/complaint-queue.png)
+
 ## Closing a complaint from the queue
 
 The close form offers only:
@@ -21,5 +23,3 @@ An optional **Note** field is available either way.
 
 !!! note
     You never close a complaint as "Resolved" by hand — that happens automatically when the work order that covers it completes.
-
-<!-- screenshot: docs/assets/screenshots/complaint-queue.png -->

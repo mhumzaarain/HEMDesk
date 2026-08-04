@@ -24,7 +24,7 @@ If the equipment turns out to have no fault, click **Cancel (no fault)** instead
 
 The detail page also shows a timeline, the attached complaints with confirmation badges (**Awaiting staff confirmation**, **Staff confirmed: Functional ✓**, **Staff reported: NOT functional ✗**), the remarks log, and the device's accessories with [fault actions](../equipment/accessory-faults.md).
 
-<!-- screenshot: docs/assets/screenshots/workorder-detail.png -->
+<!-- screenshot: docs/assets/workorder-detail.png -->
 
 ## What happens next
 

@@ -11,7 +11,7 @@ Use this whenever you need to find a device — to check its status, log a compl
 5. Page through results with **Prev** / **Next** — the list shows 25 rows per page.
 6. Click a row to open the equipment detail page.
 
-<!-- screenshot: docs/assets/screenshots/equipment-list.png -->
+![Equipment Registry with live search and status filters](../assets/equipment-list.png)
 
 !!! note
     Engineers & Admins also see **Import** and **+ Add Equipment** buttons on this page.
@@ -20,6 +20,6 @@ Use this whenever you need to find a device — to check its status, log a compl
 
 The detail page shows the device's status, department, and full history: complaints and repairs, accessories fitted, and its preventive maintenance (PPM) schedule.
 
-<!-- screenshot: docs/assets/screenshots/equipment-detail.png -->
+![Equipment detail page showing details, status history, work orders, and accessories](../assets/equipment-detail.png)
 
 **What happens next:** From here you can drill into a specific work order, complaint, or accessory to see more detail, or (if you're an engineer or admin) take action on the device — edit it, open a work order, condemn it, or manage its accessories.

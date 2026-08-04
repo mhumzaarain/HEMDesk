@@ -10,10 +10,15 @@ Django CMMS (no AI features yet).
 
 ## Screenshots
 
-<!-- screenshot: docs/assets/screenshots/dashboard.png -->
-<!-- screenshot: docs/assets/screenshots/equipment-list.png -->
-<!-- screenshot: docs/assets/screenshots/workorder-detail.png -->
-<!-- screenshot: docs/assets/screenshots/complaint-queue.png -->
+![Home screen with role cards](docs/assets/landing-page.png)
+
+![Dashboard with KPI tiles, charts, and panels](docs/assets/dashboard.png)
+
+![Equipment Registry with live search and status filters](docs/assets/equipment-list.png)
+
+![Complaint queue with Open WO / Close actions](docs/assets/complaint-queue.png)
+
+<!-- screenshot: docs/assets/workorder-detail.png -->
 
 ## Stack
 

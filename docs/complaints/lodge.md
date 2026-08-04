@@ -15,7 +15,7 @@ You're attached as the reporter automatically — there's no separate field for 
 !!! note
     You can't lodge a complaint against a condemned device ("complaints are closed") or one that's already under repair — the form tells you the work order number instead.
 
-<!-- screenshot: docs/assets/screenshots/complaint-new.png -->
+![Lodge a Complaint form with a device selected and a fault description](../assets/complaint-new.png)
 
 ## What happens next
 
