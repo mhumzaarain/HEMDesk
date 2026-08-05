@@ -55,6 +55,11 @@ services:
 
   ollama:
     image: ollama/ollama:latest
+    environment:
+      # Keep models resident in RAM. The default unloads after 5 idle
+      # minutes, and a CPU box pays a 20-60s reload on the next request —
+      # which alone can blow the interactive chat timeout.
+      OLLAMA_KEEP_ALIVE: -1
     volumes:
       - ollama:/root/.ollama
 
