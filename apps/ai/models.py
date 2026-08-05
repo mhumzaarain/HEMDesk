@@ -2,6 +2,7 @@ from django.conf import settings as django_settings
 from django.contrib.postgres.indexes import GinIndex
 from django.contrib.postgres.search import SearchVectorField
 from django.db import models
+from pgvector.django import HnswIndex, VectorField
 
 from apps.core.models import AppendOnlyModel
 from apps.equipment.models import Equipment
@@ -72,6 +73,9 @@ class ServiceManual(models.Model):
     )
     status_note = models.CharField(max_length=300, blank=True)
     page_count = models.PositiveIntegerField(default=0)
+    # Which embedding model produced this manual's chunk vectors. Empty =
+    # no vectors (or stale after a config change) → retrieval uses FTS only.
+    embedding_model = models.CharField(max_length=100, blank=True, default="")
 
     class Meta:
         constraints = [
@@ -100,9 +104,19 @@ class ManualChunk(models.Model):
     page_start = models.PositiveIntegerField()
     page_end = models.PositiveIntegerField()
     search = SearchVectorField(null=True)
+    embedding = VectorField(dimensions=django_settings.EMBEDDING_DIM, null=True)
 
     class Meta:
-        indexes = [GinIndex(fields=["search"])]
+        indexes = [
+            GinIndex(fields=["search"]),
+            HnswIndex(
+                name="ai_chunk_embedding_hnsw",
+                fields=["embedding"],
+                m=16,
+                ef_construction=64,
+                opclasses=["vector_cosine_ops"],
+            ),
+        ]
 
 
 class AssistantRole(models.TextChoices):
