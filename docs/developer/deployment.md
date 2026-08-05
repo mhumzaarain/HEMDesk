@@ -1,6 +1,6 @@
 # Deployment
 
-HEMDesk ships with a small `cli.py` wrapper (RADIS-style) around Docker
+HEMDesk ships with a small `cli.py` wrapper around Docker
 Compose and Docker Swarm — one place for the dev and operator workflows. Run
 `uv run cli.py --help` for the full command list.
 
@@ -71,8 +71,7 @@ uv run cli.py compose-build
 uv run cli.py stack-deploy
 ```
 
-After the hybrid-search release, run the one-time backfill for manuals
-uploaded before it (they stay keyword-only search until then):
+If any manuals show keyword search only, run the backfill once:
 
 ```bash
 uv run cli.py manage reembed_manuals
@@ -93,15 +92,4 @@ The production database port is deliberately not published — the dev
 override (`docker-compose.dev.yml`) adds `5432:5432` for local tooling; the
 base file, which production deploys unmodified, does not expose it.
 
-## Deliberately deferred
-
-This is a single-node deployment story aimed at getting a real hospital
-instance running, not a hardened multi-tenant platform. Known gaps, tracked
-as issues:
-
-- **Registry images and Docker secrets** — images are built locally on the
-  node and secrets live in a plain `.env` file rather than Swarm secrets or a
-  registry-based release process ([#39](https://github.com/mhumzaarain/HEMDesk/issues/39)).
-- **HTTPS** — nginx serves plain HTTP on `:8080`; TLS termination is left to
-  the operator for now ([#2](https://github.com/mhumzaarain/HEMDesk/issues/2)).
-- **Multi-node Swarm** — `stack-deploy` targets a single node only.
+TLS termination is the operator's responsibility; nginx serves plain HTTP on `:8080`.

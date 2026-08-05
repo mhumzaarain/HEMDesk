@@ -72,8 +72,7 @@ embedding backend, configured the same way via `EMBEDDING_BASE_URL` /
 `EMBEDDING_DIM` (default 768) is coupled to the database schema — changing it
 requires a new migration and re-running `manage.py reembed_manuals`. Upgrading
 an existing deployment also needs one `manage.py reembed_manuals` run after
-`migrate`, to embed manuals uploaded before this release — until then they
-stay keyword-only search.
+`migrate`, to embed any manuals that show 'keyword search only'.
 
 The bundled setup needs no manual model download: on `docker compose up` a
 one-shot `ollama-init` service pulls the chat and embedding models

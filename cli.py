@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Developer/operator CLI (RADIS-style) — one place for the docker and dev
+"""Developer/operator CLI — one place for the docker and dev
 workflows. Run `uv run cli.py --help` for the command list."""
 
 import os
