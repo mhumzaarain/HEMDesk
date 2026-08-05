@@ -17,6 +17,7 @@ htmlcov/
 staticfiles/
 media/
 db.sqlite3
+backups/
 
 # Local tooling
 bin/

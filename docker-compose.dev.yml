@@ -8,6 +8,10 @@
 #
 #   docker compose restart worker
 services:
+  db:
+    ports:
+      - "5432:5432"
+
   web:
     profiles: ["disabled"] # dev uses runserver instead
   nginx:

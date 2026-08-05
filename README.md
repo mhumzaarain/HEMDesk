@@ -44,24 +44,19 @@ Procrastinate (Postgres task queue) · uv for dependency management.
 See the [setup guide](https://mhumzaarain.github.io/HEMDesk/developer/setup/) for prerequisites and contributing details.
 
 ```bash
-docker compose up -d db          # start Postgres
 uv sync                          # create .venv and install deps (incl. dev)
-uv run python manage.py migrate
-uv run python manage.py seed_demo   # optional: 90 days of demo data
-uv run python manage.py runserver
+uv run cli.py init-workspace     # creates .env with generated secrets
+uv run cli.py compose-up         # db, ollama, hot-reloading app on :8000
 ```
 
-Or run everything in Docker with a hot-reloading dev server (no local
-Python setup needed):
+`init-workspace` generates real random secrets, including `DEMO_PASSWORD` —
+it's no longer the fixed `demo1234` unless you set it yourself in `.env`
+before running `seed_demo`.
 
-```bash
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up
-```
+Running Django directly on the host against a Dockerized Postgres is also
+still supported — see the [setup guide](https://mhumzaarain.github.io/HEMDesk/developer/setup/).
 
-App at http://localhost:8000; code edits reload automatically (restart the
-`worker` service after changing background-task code).
-
-## AI features (upcoming)
+## AI features
 
 The app talks to any OpenAI-compatible LLM endpoint — pick one via `.env`:
 
@@ -77,8 +72,7 @@ embedding backend, configured the same way via `EMBEDDING_BASE_URL` /
 `EMBEDDING_DIM` (default 768) is coupled to the database schema — changing it
 requires a new migration and re-running `manage.py reembed_manuals`. Upgrading
 an existing deployment also needs one `manage.py reembed_manuals` run after
-`migrate`, to embed manuals uploaded before this release — until then they
-stay keyword-only search.
+`migrate`, to embed any manuals that show 'keyword search only'.
 
 The bundled setup needs no manual model download: on `docker compose up` a
 one-shot `ollama-init` service pulls the chat and embedding models
@@ -98,9 +92,11 @@ leaves your deployment — but if you point `LLM_BASE_URL` or
 
 ## Demo accounts & login
 
-**All demo accounts share one password** — `demo1234` by default, overridable
-via `DEMO_PASSWORD` in `.env` before running `seed_demo`; change it before any
-real deployment.
+**All demo accounts share one password**, read from `DEMO_PASSWORD` in
+`.env` when `seed_demo` runs. `cli.py init-workspace` generates a random one
+along with the other secrets; set `DEMO_PASSWORD` yourself in `.env` before
+running `seed_demo` if you want a known password instead. Change or drop it
+before any real deployment.
 
 | Username | Role | Sees |
 | --- | --- | --- |
@@ -108,13 +104,18 @@ real deployment.
 | `engineer1`, `engineer2`, `engineer3` | Engineer | Queue, work orders, dashboard, equipment |
 | `staff1` … `staff10` | Staff | Lodge and view their own complaints |
 
-## Full stack (Docker)
+## Production
+
+Production runs on a single-node Docker Swarm rather than plain Compose:
 
 ```bash
-cp .env.example .env
-docker compose up --build        # nginx :8080 -> gunicorn, worker, postgres
-docker compose exec web python manage.py seed_demo
+uv run cli.py compose-build
+uv run cli.py stack-deploy
 ```
+
+See the [deployment guide](https://mhumzaarain.github.io/HEMDesk/developer/deployment/)
+for the one-time Swarm setup, how `.env` reaches the stack, upgrades, and
+backups.
 
 ## Production: real user accounts
 

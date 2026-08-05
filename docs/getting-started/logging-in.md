@@ -50,7 +50,7 @@ You land on the home screen, greeted by name and your employee ID, with a set of
 
 Engineers and Admins have identical permissions everywhere in the app except the Admin link itself, which only Admin accounts get.
 
-The Manuals link is part of upcoming AI features and isn't covered by this documentation yet.
+The Manuals link is covered in [AI Assistant](../ai/manuals.md).
 
 ## Changing your password
 

@@ -66,9 +66,13 @@ nav:
   - Dashboard & Reports:
       - Reading the dashboard: dashboard-reports/dashboard.md
       - Monthly reports: dashboard-reports/reports.md
+  - AI Assistant:
+      - Service manuals: ai/manuals.md
+      - Asking the assistant: ai/assistant.md
   - Administration:
       - Managing user accounts: admin/user-accounts.md
   - Developer:
       - Architecture overview: developer/architecture.md
       - Data model: developer/data-model.md
       - Setup & contributing: developer/setup.md
+      - Deployment: developer/deployment.md
