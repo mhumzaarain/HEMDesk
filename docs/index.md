@@ -17,5 +17,7 @@ HEMDesk is a hospital medical-equipment management system that combines an equip
 - [Complaints & Repairs — lodge a complaint](complaints/lodge.md)
 - [Preventive Maintenance — completing due PPMs](ppm/completing.md)
 - [Dashboard & Reports — reading the dashboard](dashboard-reports/dashboard.md)
+- [AI Assistant — asking the assistant](ai/assistant.md)
 - [Administration — managing user accounts](admin/user-accounts.md)
 - [Developer — architecture overview](developer/architecture.md)
+- [Developer — deployment guide](developer/deployment.md)

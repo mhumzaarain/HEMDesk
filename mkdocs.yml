@@ -75,3 +75,4 @@ nav:
       - Architecture overview: developer/architecture.md
       - Data model: developer/data-model.md
       - Setup & contributing: developer/setup.md
+      - Deployment: developer/deployment.md
