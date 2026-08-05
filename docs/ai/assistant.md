@@ -2,30 +2,50 @@
 
 **Who:** Engineers & Admins
 
-The assistant is a repair-troubleshooting chat built into equipment detail pages and work order pages. It's not visible to other roles.
+Every repair your team has ever completed, and every page of every service
+manual you've uploaded, is one question away. The assistant is a built-in
+troubleshooting chat that answers with your hospital's own knowledge: it
+quotes the right manual section with the page number, and it reminds you
+how your colleagues fixed the same fault on the same model — even if that
+was two years ago and the engineer who fixed it has moved on.
+
+Ask "no oxygen error — what should I check?" and instead of a generic
+answer, you get one grounded in *your* fleet: the exact device, its manual,
+and its repair history.
 
 ## Opening the assistant
 
-On an equipment detail page or an open work order, click **Assistant** to expand the panel. Type your question — for example "no oxygen error — what should I check?" — and click **Ask**.
+On an equipment detail page or a work order, click **Assistant** to expand
+the panel, type your question, and click **Ask**.
 
-Chat history is per device and shared: any engineer opening that device's panel sees the same conversation and can continue it.
+The conversation belongs to the device, not to you — any engineer opening
+that device's panel sees the same thread and can continue it. A night-shift
+engineer can pick up exactly where the day shift left off.
 
-## What it reads before answering
+## What it knows
 
-Each answer is grounded in:
+Every answer is built from four sources, assembled fresh for each question:
 
-- The device's card — manufacturer, model, and other equipment details.
-- If you're asking from a work order, that work order's complaints and remarks.
-- The top matching excerpts from the device's [service manual](manuals.md), cited with page numbers.
-- Up to 5 past completed repairs on the same model, with the most useful fixes surfaced first.
+- **The device itself** — manufacturer, model, and registry details.
+- **The live problem** — when you ask from a work order, its complaints and
+  remarks are already in front of the assistant; you don't need to restate
+  the symptoms.
+- **The service manual** — the most relevant excerpts from that model's
+  [uploaded manual](manuals.md), cited with page numbers so you can go
+  straight to the source.
+- **Your team's repair history** — up to five completed repairs on the same
+  model, best matches first, including the closing remarks that say what
+  actually fixed it.
 
-## Scoping with fault type
+## Focusing on one fault type
 
-The dropdown next to the question box starts on **All fault types**. Pick one of the eight categories (Electrical, Battery / Power, Display / Monitor, Mechanical, Calibration, Software, Accessory / Probe, Other) to narrow the past-repair context to that kind of fault — for example, choose **Calibration** if you only want past calibration fixes considered, not every repair ever logged against the model.
+The dropdown next to the question box starts on **All fault types**. Pick a
+category — say, **Calibration** — and the past-repair context narrows to
+exactly that kind of fix. It's the fastest way to cut through a busy
+model's history: "show me how we've handled calibration on these" is one
+click, not a search.
 
-!!! warning "Advisory only"
-    The assistant's answers are a starting point, not a substitute for the manual — always verify against it before acting.
-
-    If no manual is on file for the device's model, the model can still describe manual page citations that don't exist. Treat any page reference as unverified unless a manual is actually uploaded for that manufacturer/model.
-
-    On CPU-only deployments, answers can take 1–2 minutes to generate — this is expected, not a hang.
+!!! note "Advisory only"
+    Answers are a starting point for a trained engineer — verify against
+    the service manual before acting. The assistant advises; it never
+    changes any record.

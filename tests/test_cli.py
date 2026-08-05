@@ -245,3 +245,24 @@ def test_test_passthrough_with_args(workspace, calls):
     result = runner.invoke(cli.app, ["test", "-k", "foo"])
     assert result.exit_code == 0
     assert calls[0][0] == "uv run pytest -k foo"
+
+
+def test_compose_up_with_selected_services(workspace, calls):
+    set_env(workspace)
+    result = runner.invoke(cli.app, ["compose-up", "-d", "db", "ollama"])
+    assert result.exit_code == 0
+    assert calls[0][0].endswith("up -d db ollama")
+
+
+def test_restart_uses_dev_layering(workspace, calls):
+    set_env(workspace)
+    result = runner.invoke(cli.app, ["restart"])
+    assert result.exit_code == 0
+    assert calls[0][0].endswith("-p hemdesk restart worker")
+
+
+def test_restart_refuses_in_production(workspace, calls):
+    set_env(workspace, mode="production")
+    result = runner.invoke(cli.app, ["restart"])
+    assert result.exit_code != 0
+    assert calls == []

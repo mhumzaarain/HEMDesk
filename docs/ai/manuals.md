@@ -2,7 +2,13 @@
 
 **Who:** Engineers & Admins
 
-Upload manufacturer service manuals so the [AI assistant](assistant.md) can cite them when engineers ask for troubleshooting help.
+A service manual sitting in a drawer helps whoever remembers it exists.
+Upload it here and it becomes something better: a searchable knowledge
+source the [AI assistant](assistant.md) reads for you — when an engineer
+asks about a fault, the assistant pulls the relevant sections out of
+hundreds of pages and cites them with page numbers. Upload a manual once
+and every engineer, on every shift, effectively has it open to the right
+page.
 
 There's one manual per manufacturer + model. It covers every unit registered under that model, and uploading a new file for the same manufacturer/model replaces the old one — including its indexed text.
 

@@ -24,7 +24,7 @@ service (Procrastinate) does **not** autoreload — after changing
 background-task code, restart it:
 
 ```bash
-docker compose -p hemdesk restart worker
+uv run cli.py restart worker
 ```
 
 `compose-down` stops the stack. Running Django directly on the host (against

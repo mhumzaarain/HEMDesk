@@ -15,15 +15,35 @@ the whole dev stack in Docker — see [Deployment](deployment.md) for what's
 running and how to work with it (restarting the worker, running commands
 inside a container, and so on).
 
-Prefer running Django directly on the host, against a Dockerized Postgres
-only? That's still supported:
+## Two ways to run the app in development
+
+Both serve the **same app against the same database** — the difference is
+only where the Django process runs. Pick by taste; you can switch any time.
+
+**Option A — everything in Docker** (the quick start above). One command,
+nothing else to manage: Django (hot-reloading), the background worker, and
+Ollama all run as containers. Code edits reload automatically. App on
+<http://127.0.0.1:8000>.
+
+**Option B — Django on your machine, infrastructure in Docker.** Choose
+this when you want your IDE's debugger and breakpoints attached to the
+Django process:
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.dev.yml -p hemdesk up -d db
+uv run cli.py compose-up -d db ollama   # just the infrastructure
 uv run python manage.py migrate
-uv run python manage.py seed_demo   # optional demo data + accounts
+uv run python manage.py seed_demo       # optional demo data + accounts
 uv run python manage.py runserver
 ```
+
+Same app, same URL, same data. Two things to know in this mode:
+
+- Background jobs (assistant answers, report generation, manual indexing)
+  are processed by the worker, which isn't running yet — start it in a
+  second terminal when you need those features:
+  `uv run python manage.py procrastinate worker`
+- Model downloads still happen automatically: add `ollama-init` to the
+  `compose-up` line (or run the full stack once) to pull the AI models.
 
 ## Checks
 

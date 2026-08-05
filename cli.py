@@ -95,6 +95,9 @@ def init_workspace():
 @app.command()
 def compose_up(
     detach: bool = typer.Option(False, "--detach", "-d", help="Run in background"),
+    services: list[str] | None = typer.Argument(
+        None, help="Only start these services (default: the whole stack)"
+    ),
 ):
     """Start the development stack (hot-reloading runserver on :8000)."""
     if environment() == "production":
@@ -102,7 +105,20 @@ def compose_up(
             "compose-up is development-only — this .env says "
             "ENVIRONMENT=production. Use stack-deploy."
         )
-    _run(f"{_dev_compose()} up" + (" -d" if detach else ""))
+    cmd = f"{_dev_compose()} up"
+    if detach:
+        cmd += " -d"
+    if services:
+        cmd += " " + " ".join(services)
+    _run(cmd)
+
+
+@app.command()
+def restart(service: str = typer.Argument("worker", help="Service to restart")):
+    """Restart a dev-stack service (e.g. the worker after task-code changes)."""
+    if environment() == "production":
+        sys.exit("restart is development-only — Swarm restarts services itself.")
+    _run(f"{_dev_compose()} restart {service}")
 
 
 @app.command()
