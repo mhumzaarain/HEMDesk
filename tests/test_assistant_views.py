@@ -48,7 +48,9 @@ def test_poll_shows_thinking_until_answer(engineer_client, engineer, equipment):
     assert b"Answer." in body and b"Advisory only" in body
 
 
-def test_send_passes_fault_category_to_task(engineer_client, engineer, equipment, monkeypatch):
+def test_send_passes_fault_category_to_task(
+    engineer_client, engineer, equipment, monkeypatch
+):
     from apps.ai import tasks
 
     captured = {}
@@ -63,7 +65,9 @@ def test_send_passes_fault_category_to_task(engineer_client, engineer, equipment
     assert captured["fault_category"] == "display_monitor"
 
 
-def test_send_drops_unknown_fault_category(engineer_client, engineer, equipment, monkeypatch):
+def test_send_drops_unknown_fault_category(
+    engineer_client, engineer, equipment, monkeypatch
+):
     from apps.ai import tasks
 
     captured = {}
@@ -78,7 +82,9 @@ def test_send_drops_unknown_fault_category(engineer_client, engineer, equipment,
     assert captured["fault_category"] is None
 
 
-def test_panel_dropdown_covers_all_fault_categories(engineer_client, engineer, equipment):
+def test_panel_dropdown_covers_all_fault_categories(
+    engineer_client, engineer, equipment
+):
     from apps.maintenance.models import FaultCategory
 
     url = reverse("equipment_detail", args=[equipment.pk])

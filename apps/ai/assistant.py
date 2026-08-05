@@ -94,12 +94,16 @@ def build_messages(equipment, work_order, question, fault_category=None):
     category_label = (
         FaultCategory(fault_category).label if fault_category else "all"
     )
+    exclude_wo_id = work_order.id if work_order else None
+    repairs = _similar_repairs_block(
+        equipment, question, fault_category, exclude_wo_id
+    )
     context = (
         f"{_device_card(equipment)}\n\n"
         f"== Work-order context ==\n{_work_order_block(work_order)}\n\n"
         f"== Service manual sections ==\n{_manual_block(equipment, question)}\n\n"
         f"== Similar past repairs (same model, category: {category_label}) ==\n"
-        f"{_similar_repairs_block(equipment, question, fault_category, work_order.id if work_order else None)}\n\n"
+        f"{repairs}\n\n"
         f"== Recent chat ==\n{_history_block(equipment)}\n\n"
         f"Engineer's question: {question}"
     )

@@ -81,7 +81,9 @@ def processed_manual(db, engineer, monkeypatch):
     return manual
 
 
-def test_process_embeds_chunks_and_stamps_model(processed_manual, monkeypatch, settings):
+def test_process_embeds_chunks_and_stamps_model(
+    processed_manual, monkeypatch, settings
+):
     from apps.ai import manuals
 
     monkeypatch.setattr(manuals.embeddings, "embed_documents", _fake_vectors)
