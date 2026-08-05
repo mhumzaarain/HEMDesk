@@ -61,19 +61,28 @@ The app talks to any OpenAI-compatible LLM endpoint — pick one via `.env`:
 | Own vLLM server | `LLM_BASE_URL=http://your-host:8000/v1`, `LLM_MODEL=...` |
 | Hospital LLM gateway | `LLM_BASE_URL=https://llm.hospital.example/v1`, `LLM_API_KEY=...` |
 
-First start with the bundled container, pull the default model once:
+Service-manual search and the assistant's past-repair context also use an
+embedding backend, configured the same way via `EMBEDDING_BASE_URL` /
+`EMBEDDING_MODEL` (e.g. a vLLM server serving `Qwen/Qwen3-Embedding-4B`).
+`EMBEDDING_DIM` (default 768) is coupled to the database schema — changing it
+requires a new migration and re-running `manage.py reembed_manuals`.
+
+First start with the bundled container, pull the default models once:
 
     docker compose up -d ollama
     docker compose exec ollama ollama pull llama3.2:3b
+    docker compose exec ollama ollama pull nomic-embed-text
 
 Everything degrades gracefully with no LLM: reports generate without the
-narrative, risk scores compute without explanations.
+narrative, risk scores compute without explanations, and manual search falls
+back to keyword-only without embeddings.
 
 Privacy note: prompts include complaint and remark free-text, engineers'
 assistant questions and chat history, service-manual excerpts, and device
-details (serial number, department). The default bundled Ollama runs locally,
-so nothing leaves your deployment — but if you point `LLM_BASE_URL` at an
-external endpoint, all of that is sent there.
+details (serial number, department). Assistant questions are also sent to the
+embedding endpoint. The default bundled Ollama runs locally, so nothing
+leaves your deployment — but if you point `LLM_BASE_URL` or
+`EMBEDDING_BASE_URL` at an external endpoint, all of that is sent there.
 
 ## Demo accounts & login
 
