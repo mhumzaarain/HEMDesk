@@ -119,5 +119,41 @@ def compose_build():
     _run(f"docker compose -f docker-compose.yml -p {STACK_NAME} build")
 
 
+def _quoted_env_keys(values: dict[str, str]) -> list[str]:
+    return [
+        key
+        for key, value in values.items()
+        if value and (value[0] in "'\"" or value[-1] in "'\"")
+    ]
+
+
+@app.command()
+def stack_deploy():
+    """Deploy the production stack to a single-node Docker Swarm."""
+    values = read_env_file()
+    if values.get("ENVIRONMENT", "development") != "production":
+        sys.exit(
+            "stack-deploy is production-only — set ENVIRONMENT=production in .env."
+        )
+    quoted = _quoted_env_keys(values)
+    if quoted:
+        sys.exit(
+            "Quoted values in .env: " + ", ".join(quoted) + ". Swarm passes "
+            "env values to containers verbatim (quotes included) — remove them."
+        )
+    if _capture("docker info --format {{.Swarm.LocalNodeState}}") != "active":
+        sys.exit("Docker Swarm is not active on this node — run: docker swarm init")
+    _run(
+        f"docker stack deploy --detach {PROD_LAYERING} {STACK_NAME}",
+        env=values,
+    )
+
+
+@app.command()
+def stack_rm():
+    """Remove the production stack."""
+    _run(f"docker stack rm {STACK_NAME}")
+
+
 if __name__ == "__main__":
     app()

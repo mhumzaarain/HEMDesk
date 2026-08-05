@@ -89,3 +89,50 @@ def test_missing_env_file_gives_hint(workspace, calls):
     result = runner.invoke(cli.app, ["compose-up"])
     assert result.exit_code != 0
     assert "init-workspace" in result.output
+
+
+@pytest.fixture
+def swarm_active(monkeypatch):
+    monkeypatch.setattr(cli, "_capture", lambda cmd: "active")
+
+
+def test_stack_deploy_passes_env_and_layers_prod(workspace, calls, swarm_active):
+    set_env(workspace, mode="production", extra="LLM_MODEL=llama3.2:3b\n")
+    result = runner.invoke(cli.app, ["stack-deploy"])
+    assert result.exit_code == 0
+    cmd, env = calls[0]
+    assert cmd == (
+        "docker stack deploy --detach "
+        "-c docker-compose.yml -c docker-compose.prod.yml hemdesk"
+    )
+    assert env["LLM_MODEL"] == "llama3.2:3b"
+    assert env["ENVIRONMENT"] == "production"
+
+
+def test_stack_deploy_refuses_in_development(workspace, calls, swarm_active):
+    set_env(workspace, mode="development")
+    result = runner.invoke(cli.app, ["stack-deploy"])
+    assert result.exit_code != 0
+    assert calls == []
+
+
+def test_stack_deploy_rejects_quoted_env_values(workspace, calls, swarm_active):
+    set_env(workspace, mode="production", extra='SECRET_KEY="quoted"\n')
+    result = runner.invoke(cli.app, ["stack-deploy"])
+    assert result.exit_code != 0
+    assert "SECRET_KEY" in result.output
+    assert calls == []
+
+
+def test_stack_deploy_requires_active_swarm(workspace, calls, monkeypatch):
+    set_env(workspace, mode="production")
+    monkeypatch.setattr(cli, "_capture", lambda cmd: "inactive")
+    result = runner.invoke(cli.app, ["stack-deploy"])
+    assert result.exit_code != 0
+    assert "swarm init" in result.output
+
+
+def test_stack_rm(workspace, calls):
+    set_env(workspace, mode="production")
+    runner.invoke(cli.app, ["stack-rm"])
+    assert calls == [("docker stack rm hemdesk", None)]

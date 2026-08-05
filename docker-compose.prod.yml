@@ -1,0 +1,28 @@
+# Production overlay — single-node Docker Swarm. Deploy only via:
+#   uv run cli.py stack-deploy
+# The base file is already production-shaped (no host-port conveniences —
+# those live in docker-compose.dev.yml); this overlay only adds Swarm
+# restart policies. Swarm ignores build:/depends_on ordering — services
+# crash-loop until their dependencies are up, which the web command
+# (migrate && collectstatic && gunicorn) tolerates by design.
+services:
+  db:
+    deploy:
+      restart_policy:
+        condition: on-failure
+  web:
+    deploy:
+      restart_policy:
+        condition: on-failure
+  worker:
+    deploy:
+      restart_policy:
+        condition: on-failure
+  ollama:
+    deploy:
+      restart_policy:
+        condition: on-failure
+  nginx:
+    deploy:
+      restart_policy:
+        condition: on-failure
