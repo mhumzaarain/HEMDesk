@@ -49,6 +49,13 @@ def test_init_workspace_generates_distinct_secrets(workspace, calls):
     assert values["ENVIRONMENT"] == "development"
 
 
+def test_generated_secrets_avoid_compose_metacharacters():
+    for _ in range(20):
+        secret = cli._generate_secret()
+        assert len(secret) == 50
+        assert "$" not in secret and "#" not in secret and "&" not in secret
+
+
 def test_init_workspace_refuses_to_overwrite(workspace):
     set_env(workspace)
     result = runner.invoke(cli.app, ["init-workspace"])
@@ -162,6 +169,18 @@ def test_find_container_uses_prod_separator(workspace, container):
     assert "name=hemdesk_db" in container["lookup"]
 
 
+def test_find_container_dev_web_looks_up_runserver(workspace, container):
+    set_env(workspace, mode="development")
+    cli._find_container("web")
+    assert "name=hemdesk-runserver" in container["lookup"]
+
+
+def test_find_container_prod_web_looks_up_web(workspace, container):
+    set_env(workspace, mode="production")
+    cli._find_container("web")
+    assert "name=hemdesk_web" in container["lookup"]
+
+
 def test_find_container_exits_when_absent(workspace, monkeypatch):
     set_env(workspace)
     monkeypatch.setattr(cli, "_capture", lambda cmd: "")
@@ -173,6 +192,13 @@ def test_manage_passthrough(workspace, calls, container):
     set_env(workspace)
     runner.invoke(cli.app, ["manage", "seed_demo"])
     assert calls == [("docker exec -it abc123 python manage.py seed_demo", None)]
+
+
+def test_manage_passthrough_with_flags(workspace, calls, container):
+    set_env(workspace)
+    result = runner.invoke(cli.app, ["manage", "migrate", "--noinput"])
+    assert result.exit_code == 0
+    assert "migrate --noinput" in calls[0][0]
 
 
 def test_db_backup_dumps_and_copies(workspace, calls, container):
@@ -212,3 +238,10 @@ def test_tool_wrappers(workspace, calls):
     assert "uv run pytest" in cmds[0]
     assert cmds[1] == "uv run ruff check ."
     assert cmds[2] == "uv run ruff format ."
+
+
+def test_test_passthrough_with_args(workspace, calls):
+    set_env(workspace)
+    result = runner.invoke(cli.app, ["test", "-k", "foo"])
+    assert result.exit_code == 0
+    assert calls[0][0] == "uv run pytest -k foo"

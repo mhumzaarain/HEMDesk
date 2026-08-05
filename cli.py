@@ -64,7 +64,7 @@ def _dev_compose() -> str:
 
 
 def _generate_secret(length: int = 50) -> str:
-    chars = "abcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*(-_=+)"
+    chars = "abcdefghijklmnopqrstuvwxyz0123456789!@%^*(-_=+)"
     return "".join(secrets.choice(chars) for _ in range(length))
 
 
@@ -157,7 +157,12 @@ def stack_rm():
 
 
 def _find_container(service: str) -> str:
-    sep = "_" if environment() == "production" else "-"
+    if environment() == "production":
+        sep = "_"
+    else:
+        sep = "-"
+        if service == "web":
+            service = "runserver"  # dev stack runs runserver instead of web
     found = _capture(
         f"docker ps -q -f name={STACK_NAME}{sep}{service} -f status=running"
     ).splitlines()
@@ -172,10 +177,15 @@ def shell():
     _run(f"docker exec -it {_find_container('web')} python manage.py shell")
 
 
-@app.command()
-def manage(args: list[str] = typer.Argument(help="manage.py arguments")):
+@app.command(
+    context_settings={"allow_extra_args": True, "ignore_unknown_options": True}
+)
+def manage(ctx: typer.Context):
     """Run a manage.py command inside the running web container."""
-    _run(f"docker exec -it {_find_container('web')} python manage.py {' '.join(args)}")
+    _run(
+        f"docker exec -it {_find_container('web')} python manage.py "
+        f"{' '.join(ctx.args)}"
+    )
 
 
 @app.command()
@@ -226,10 +236,12 @@ def db_restore(
     _run(f"docker exec {container} rm /tmp/hemdesk-restore.dump")
 
 
-@app.command()
-def test(args: list[str] = typer.Argument(None, help="Extra pytest arguments")):
+@app.command(
+    context_settings={"allow_extra_args": True, "ignore_unknown_options": True}
+)
+def test(ctx: typer.Context):
     """Run the test suite."""
-    _run("uv run pytest" + (" " + " ".join(args) if args else ""))
+    _run("uv run pytest" + (" " + " ".join(ctx.args) if ctx.args else ""))
 
 
 @app.command()

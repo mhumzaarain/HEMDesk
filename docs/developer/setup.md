@@ -19,7 +19,7 @@ Prefer running Django directly on the host, against a Dockerized Postgres
 only? That's still supported:
 
 ```bash
-docker compose up -d db
+docker compose -f docker-compose.yml -f docker-compose.dev.yml -p hemdesk up -d db
 uv run python manage.py migrate
 uv run python manage.py seed_demo   # optional demo data + accounts
 uv run python manage.py runserver

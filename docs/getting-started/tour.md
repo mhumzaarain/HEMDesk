@@ -12,7 +12,7 @@ The **HEMDESK** brand at the top of the sidebar always links back to the home sc
 - **Insights** (engineers and admins only) — Queue, Dashboard, Reports, and Manuals.
 - **Admin** (admins only) — a link into the Django admin site.
 
-The Manuals link is part of upcoming AI features and isn't covered by this documentation yet.
+The Manuals link is covered in [AI Assistant](../ai/manuals.md).
 
 The sidebar footer has your name and employee ID, the dark/light mode toggle, **Change password**, and **Log out**.
 

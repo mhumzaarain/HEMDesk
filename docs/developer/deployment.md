@@ -46,6 +46,11 @@ docker swarm init
 Set `ENVIRONMENT=production` in `.env` (this is what makes `cli.py` refuse
 `compose-up`/`compose-down` and require Swarm instead).
 
+Also set `ALLOWED_HOSTS` and `CSRF_TRUSTED_ORIGINS` in `.env` for the
+hostname users will actually browse to. `CSRF_TRUSTED_ORIGINS` needs the
+scheme and port, e.g. `http://cmms.hospital.local:8080` — the localhost
+defaults only work for local testing.
+
 **Deploy:**
 
 ```bash
@@ -70,6 +75,10 @@ git pull
 uv run cli.py compose-build
 uv run cli.py stack-deploy
 ```
+
+> Swarm configs are immutable — if `nginx.conf` changed since the last
+> deploy, `stack-deploy` will fail to update it in place. Run
+> `uv run cli.py stack-rm` first, then `stack-deploy`.
 
 If any manuals show keyword search only, run the backfill once:
 

@@ -56,7 +56,7 @@ before running `seed_demo`.
 Running Django directly on the host against a Dockerized Postgres is also
 still supported — see the [setup guide](https://mhumzaarain.github.io/HEMDesk/developer/setup/).
 
-## AI features (upcoming)
+## AI features
 
 The app talks to any OpenAI-compatible LLM endpoint — pick one via `.env`:
 
