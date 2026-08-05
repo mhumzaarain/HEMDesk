@@ -95,3 +95,15 @@ LLM_INTERACTIVE_TIMEOUT_SECONDS = float(
     os.environ.get("LLM_INTERACTIVE_TIMEOUT_SECONDS", "30")
 )
 LLM_EXTRA_BODY = json.loads(os.environ.get("LLM_EXTRA_BODY", "{}"))
+
+# --- Embedding backend (hybrid manual search) — mirrors the LLM block above
+EMBEDDING_BASE_URL = os.environ.get("EMBEDDING_BASE_URL", "http://ollama:11434/v1")
+EMBEDDING_API_KEY = os.environ.get("EMBEDDING_API_KEY", "")
+EMBEDDING_MODEL = os.environ.get("EMBEDDING_MODEL", "nomic-embed-text")
+EMBEDDING_DIM = int(os.environ.get("EMBEDDING_DIM", "768"))
+EMBEDDING_TIMEOUT_SECONDS = float(os.environ.get("EMBEDDING_TIMEOUT_SECONDS", "30"))
+EMBEDDING_BATCH_SIZE = int(os.environ.get("EMBEDDING_BATCH_SIZE", "64"))
+EMBEDDING_QUERY_PREFIX = os.environ.get("EMBEDDING_QUERY_PREFIX", "search_query: ")
+EMBEDDING_DOCUMENT_PREFIX = os.environ.get(
+    "EMBEDDING_DOCUMENT_PREFIX", "search_document: "
+)
