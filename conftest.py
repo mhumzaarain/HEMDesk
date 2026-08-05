@@ -1,8 +1,25 @@
 import pytest
 from django.contrib.auth import get_user_model
 
+from apps.ai import embeddings as ai_embeddings
 from apps.equipment.models import Accessory, AccessoryType, Department, Equipment
 from apps.maintenance.models import WorkOrder, WorkOrderStatus
+
+
+@pytest.fixture(autouse=True)
+def fake_embedding_backend(request, monkeypatch):
+    """Global constraint: tests never touch the network. The embedding
+    backend is down by default; tests that want vectors monkeypatch their
+    own fakes (which override this), and tests/test_embeddings.py
+    exercises the real client through httpx.MockTransport."""
+    if request.fspath.basename == "test_embeddings.py":
+        return
+
+    def down(*args, **kwargs):
+        raise ai_embeddings.EmbeddingUnavailable("embedding backend disabled in tests")
+
+    monkeypatch.setattr(ai_embeddings, "embed_documents", down)
+    monkeypatch.setattr(ai_embeddings, "embed_query", down)
 
 
 @pytest.fixture
