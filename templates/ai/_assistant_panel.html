@@ -18,6 +18,18 @@
           hx-swap="innerHTML"
           hx-on::after-request="this.reset()">
       {% csrf_token %}
+      <select class="input w-44" name="fault_category"
+              title="Scope past-repair context to one fault type">
+        <option value="">All fault types</option>
+        <option value="electrical">Electrical</option>
+        <option value="battery_power">Battery / Power</option>
+        <option value="display_monitor">Display / Monitor</option>
+        <option value="mechanical">Mechanical</option>
+        <option value="calibration">Calibration</option>
+        <option value="software">Software</option>
+        <option value="accessory_probe">Accessory / Probe</option>
+        <option value="other">Other</option>
+      </select>
       <input class="input flex-1" name="content" placeholder="e.g. no oxygen error — what should I check?" required>
       <button type="submit" class="btn-primary btn-sm">Ask</button>
     </form>

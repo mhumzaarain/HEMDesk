@@ -1,0 +1,33 @@
+# Development override: hot-reloading Django dev server inside Docker.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+#
+# Replaces nginx+gunicorn with runserver on :8000; db, worker, and ollama
+# (+ automatic model pull) come from the base file unchanged. The worker
+# does not autoreload — after changing background-task code:
+#
+#   docker compose restart worker
+services:
+  web:
+    profiles: ["disabled"] # dev uses runserver instead
+  nginx:
+    profiles: ["disabled"]
+
+  runserver:
+    build: .
+    env_file: .env
+    environment:
+      POSTGRES_HOST: db
+      DJANGO_SETTINGS_MODULE: config.settings.dev
+    command: >
+      sh -c "python manage.py migrate --noinput &&
+             python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - .:/app
+      - /app/.venv # keep the image's Linux venv; don't overlay the host's
+      - media:/app/media
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy

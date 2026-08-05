@@ -47,3 +47,19 @@ def test_assistant_message_ordering(equipment, engineer, db):
         equipment=equipment, user=engineer, role="assistant", content="second"
     )
     assert list(equipment.assistant_messages.all()) == [a, b]
+
+
+def test_chunk_stores_embedding_vector(db, engineer, settings):
+    from apps.ai.models import ManualChunk, ServiceManual
+
+    manual = ServiceManual.objects.create(
+        manufacturer="Hamilton", model_number="C2",
+        title="C2 Manual", uploaded_by=engineer,
+    )
+    chunk = ManualChunk.objects.create(
+        manual=manual, text="t", page_start=1, page_end=1,
+        embedding=[0.5] * settings.EMBEDDING_DIM,
+    )
+    chunk.refresh_from_db()
+    assert len(chunk.embedding) == settings.EMBEDDING_DIM
+    assert manual.embedding_model == ""

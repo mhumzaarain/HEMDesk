@@ -1,13 +1,19 @@
 """Service-manual extraction and FTS chunking (spec §5). Chunks are plain
 text rows — an embedding column can be added later without redesign."""
 
+import logging
+
+from django.conf import settings
 from django.contrib.postgres.search import SearchVector
 
+from . import embeddings
 from .models import ManualChunk, ManualStatus
 
 CHUNK_SIZE = 1500
 CHUNK_OVERLAP = 200
 MIN_CHARS_PER_PAGE = 20  # below this average → treat as scanned/image-only
+
+logger = logging.getLogger(__name__)
 
 
 def extract_pages(file_field) -> list[str]:
@@ -56,6 +62,37 @@ def chunk_pages(pages, size=CHUNK_SIZE, overlap=CHUNK_OVERLAP):
     return chunks
 
 
+def embed_chunks(manual) -> bool:
+    """Fill every chunk's embedding in EMBEDDING_BATCH_SIZE batches.
+    True on full success; False (vectors untouched/partial) on failure —
+    retrieval treats the manual as keyword-only either way via the
+    embedding_model stamp."""
+    chunks = list(manual.chunks.order_by("id"))
+    batch = settings.EMBEDDING_BATCH_SIZE
+    try:
+        for start in range(0, len(chunks), batch):
+            group = chunks[start : start + batch]
+            vectors = embeddings.embed_documents([c.text for c in group])
+            for chunk, vector in zip(group, vectors):
+                chunk.embedding = vector
+            ManualChunk.objects.bulk_update(group, ["embedding"])
+    except embeddings.EmbeddingUnavailable as exc:
+        logger.warning("embedding failed for manual %s: %s", manual.pk, exc)
+        return False
+    return True
+
+
+def embed_and_stamp(manual) -> bool:
+    """embed_chunks + record the outcome on the instance (not saved)."""
+    if embed_chunks(manual):
+        manual.embedding_model = settings.EMBEDDING_MODEL
+        manual.status_note = ""
+        return True
+    manual.embedding_model = ""
+    manual.status_note = "embeddings unavailable — keyword search only"
+    return False
+
+
 def process(manual) -> None:
     pages = extract_pages(manual.file)
     total_chars = sum(len(p.strip()) for p in pages)
@@ -71,7 +108,9 @@ def process(manual) -> None:
         for text, start, end in chunk_pages(pages)
     )
     manual.chunks.update(search=SearchVector("text"))
+    embed_and_stamp(manual)
     manual.page_count = len(pages)
     manual.status = ManualStatus.READY
-    manual.status_note = ""
-    manual.save(update_fields=["status", "status_note", "page_count"])
+    manual.save(
+        update_fields=["status", "status_note", "page_count", "embedding_model"]
+    )
