@@ -65,7 +65,10 @@ Service-manual search and the assistant's past-repair context also use an
 embedding backend, configured the same way via `EMBEDDING_BASE_URL` /
 `EMBEDDING_MODEL` (e.g. a vLLM server serving `Qwen/Qwen3-Embedding-4B`).
 `EMBEDDING_DIM` (default 768) is coupled to the database schema — changing it
-requires a new migration and re-running `manage.py reembed_manuals`.
+requires a new migration and re-running `manage.py reembed_manuals`. Upgrading
+an existing deployment also needs one `manage.py reembed_manuals` run after
+`migrate`, to embed manuals uploaded before this release — until then they
+stay keyword-only search.
 
 First start with the bundled container, pull the default models once:
 
