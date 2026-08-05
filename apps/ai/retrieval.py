@@ -94,8 +94,10 @@ def similar_repairs(
     equipment, query_text, fault_category=None, exclude_wo_id=None, k=STUFF_LIMIT
 ):
     """Deterministic past-fix retrieval (spec §2): same manufacturer+model,
-    optional category scope. ≤ k candidates → all of them (nothing to
-    miss); > k → FTS-ranked top k, most-recent k when FTS finds nothing."""
+    optional category scope. Always returns min(k, total) rows — wording
+    influences which repairs are picked, never how many. ≤ k candidates →
+    all of them; > k → FTS matches first, remaining seats filled by the
+    most recent completed repairs."""
     base = WorkOrder.objects.filter(
         status=WorkOrderStatus.COMPLETED,
         equipment__manufacturer__iexact=equipment.manufacturer,
@@ -110,7 +112,9 @@ def similar_repairs(
         base.order_by("-repair_completed_at").values_list("id", flat=True)[: k + 1]
     )
     if len(recent_ids) > k:
-        ids = _fts_work_order_ids(base, query_text, k) or recent_ids[:k]
+        fts_ids = _fts_work_order_ids(base, query_text, k)
+        padding = [i for i in recent_ids if i not in fts_ids]
+        ids = (fts_ids + padding)[:k]
     else:
         ids = recent_ids
     work_orders = (

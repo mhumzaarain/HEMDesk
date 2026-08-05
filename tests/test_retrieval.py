@@ -195,3 +195,19 @@ def test_large_history_falls_back_to_most_recent(
                       f"SN-R{i}", "routine battery swap")
     rows = retrieval.similar_repairs(equipment, "zzz nomatch qqq")
     assert len(rows) == 5
+
+
+def test_thin_fts_match_is_padded_with_recent(
+    equipment, make_equipment, make_work_order, engineer, db
+):
+    # 6 unrelated repairs + 1 keyword hit: the hit must not shrink the
+    # context — remaining seats are filled by the most recent repairs.
+    for i in range(6):
+        _completed_wo(make_equipment, make_work_order, engineer,
+                      f"SN-P{i}", "routine battery swap")
+    hit = _completed_wo(make_equipment, make_work_order, engineer,
+                        "SN-PHIT", "ventilator shows no oxygen error")
+    rows = retrieval.similar_repairs(equipment, "no oxygen error")
+    ids = [r["wo_id"] for r in rows]
+    assert hit.id in ids
+    assert len(rows) == 5
