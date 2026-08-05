@@ -136,3 +136,79 @@ def test_stack_rm(workspace, calls):
     set_env(workspace, mode="production")
     runner.invoke(cli.app, ["stack-rm"])
     assert calls == [("docker stack rm hemdesk", None)]
+
+
+@pytest.fixture
+def container(monkeypatch):
+    seen = {}
+
+    def fake_capture(cmd):
+        seen["lookup"] = cmd
+        return "abc123"
+
+    monkeypatch.setattr(cli, "_capture", fake_capture)
+    return seen
+
+
+def test_find_container_uses_dev_separator(workspace, container):
+    set_env(workspace, mode="development")
+    assert cli._find_container("db") == "abc123"
+    assert "name=hemdesk-db" in container["lookup"]
+
+
+def test_find_container_uses_prod_separator(workspace, container):
+    set_env(workspace, mode="production")
+    cli._find_container("db")
+    assert "name=hemdesk_db" in container["lookup"]
+
+
+def test_find_container_exits_when_absent(workspace, monkeypatch):
+    set_env(workspace)
+    monkeypatch.setattr(cli, "_capture", lambda cmd: "")
+    with pytest.raises(SystemExit):
+        cli._find_container("db")
+
+
+def test_manage_passthrough(workspace, calls, container):
+    set_env(workspace)
+    runner.invoke(cli.app, ["manage", "seed_demo"])
+    assert calls == [("docker exec -it abc123 python manage.py seed_demo", None)]
+
+
+def test_db_backup_dumps_and_copies(workspace, calls, container):
+    set_env(workspace, extra="POSTGRES_USER=cmms\nPOSTGRES_DB=cmms\n")
+    result = runner.invoke(cli.app, ["db-backup"])
+    assert result.exit_code == 0
+    cmds = [c for c, _ in calls]
+    assert cmds[0] == (
+        "docker exec abc123 pg_dump -U cmms -Fc -f /tmp/hemdesk-backup.dump cmms"
+    )
+    assert cmds[1].startswith("docker cp abc123:/tmp/hemdesk-backup.dump")
+    assert cmds[2] == "docker exec abc123 rm /tmp/hemdesk-backup.dump"
+
+
+def test_db_restore_requires_confirmation(workspace, calls, container):
+    set_env(workspace)
+    result = runner.invoke(cli.app, ["db-restore", "some.dump"])
+    assert result.exit_code != 0
+    assert calls == []
+
+
+def test_db_restore_with_yes(workspace, calls, container, tmp_path):
+    set_env(workspace, extra="POSTGRES_USER=cmms\nPOSTGRES_DB=cmms\n")
+    dump = tmp_path / "some.dump"
+    dump.write_bytes(b"x")
+    result = runner.invoke(cli.app, ["db-restore", str(dump), "--yes"])
+    assert result.exit_code == 0
+    assert "pg_restore --clean --if-exists -U cmms -d cmms" in calls[1][0]
+
+
+def test_tool_wrappers(workspace, calls):
+    set_env(workspace)
+    runner.invoke(cli.app, ["test"])
+    runner.invoke(cli.app, ["lint"])
+    runner.invoke(cli.app, ["format"])
+    cmds = [c for c, _ in calls]
+    assert "uv run pytest" in cmds[0]
+    assert cmds[1] == "uv run ruff check ."
+    assert cmds[2] == "uv run ruff format ."

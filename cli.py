@@ -7,6 +7,7 @@ import secrets
 import shutil
 import subprocess
 import sys
+from datetime import date
 from pathlib import Path
 
 import typer
@@ -153,6 +154,95 @@ def stack_deploy():
 def stack_rm():
     """Remove the production stack."""
     _run(f"docker stack rm {STACK_NAME}")
+
+
+def _find_container(service: str) -> str:
+    sep = "_" if environment() == "production" else "-"
+    found = _capture(
+        f"docker ps -q -f name={STACK_NAME}{sep}{service} -f status=running"
+    ).splitlines()
+    if not found:
+        sys.exit(f"No running {service} container found for stack {STACK_NAME}.")
+    return found[0]
+
+
+@app.command()
+def shell():
+    """Django shell inside the running web container."""
+    _run(f"docker exec -it {_find_container('web')} python manage.py shell")
+
+
+@app.command()
+def manage(args: list[str] = typer.Argument(help="manage.py arguments")):
+    """Run a manage.py command inside the running web container."""
+    _run(f"docker exec -it {_find_container('web')} python manage.py {' '.join(args)}")
+
+
+@app.command()
+def logs(service: str = typer.Argument("web", help="Service name")):
+    """Tail a running service's logs."""
+    _run(f"docker logs -f --tail 100 {_find_container(service)}")
+
+
+@app.command()
+def db_backup(file: str = typer.Argument(None, help="Target file (default backups/)")):
+    """pg_dump the database (works in dev and prod)."""
+    values = read_env_file()
+    user = values.get("POSTGRES_USER", "cmms")
+    database = values.get("POSTGRES_DB", "cmms")
+    target = (
+        Path(file)
+        if file
+        else ROOT / "backups" / f"hemdesk-{date.today():%Y-%m-%d}.dump"
+    )
+    target.parent.mkdir(parents=True, exist_ok=True)
+    container = _find_container("db")
+    _run(
+        f"docker exec {container} pg_dump -U {user} -Fc -f "
+        f"/tmp/hemdesk-backup.dump {database}"
+    )
+    _run(f'docker cp {container}:/tmp/hemdesk-backup.dump "{target}"')
+    _run(f"docker exec {container} rm /tmp/hemdesk-backup.dump")
+    print(f"Backup written to {target}")
+
+
+@app.command()
+def db_restore(
+    file: str,
+    yes: bool = typer.Option(False, "--yes", help="Confirm replacing the database"),
+):
+    """Restore a pg_dump backup (DESTRUCTIVE — replaces current data)."""
+    if not yes:
+        sys.exit("db-restore replaces the current database. Re-run with --yes.")
+    values = read_env_file()
+    user = values.get("POSTGRES_USER", "cmms")
+    database = values.get("POSTGRES_DB", "cmms")
+    container = _find_container("db")
+    _run(f'docker cp "{file}" {container}:/tmp/hemdesk-restore.dump')
+    _run(
+        f"docker exec {container} pg_restore --clean --if-exists "
+        f"-U {user} -d {database} /tmp/hemdesk-restore.dump"
+    )
+    _run(f"docker exec {container} rm /tmp/hemdesk-restore.dump")
+
+
+@app.command()
+def test(args: list[str] = typer.Argument(None, help="Extra pytest arguments")):
+    """Run the test suite."""
+    _run("uv run pytest" + (" " + " ".join(args) if args else ""))
+
+
+@app.command()
+def lint():
+    """Ruff check."""
+    _run("uv run ruff check .")
+
+
+@app.command()
+def format():
+    """Ruff format + import sort."""
+    _run("uv run ruff format .")
+    _run("uv run ruff check . --fix --select I")
 
 
 if __name__ == "__main__":
