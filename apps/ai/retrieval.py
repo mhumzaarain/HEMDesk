@@ -71,34 +71,62 @@ def manual_sections(manual, query_text, k=5):
     return [by_id[cid] for cid, _ in fused[:k]]
 
 
-def similar_repairs(equipment, query_text, k=3):
+STUFF_LIMIT = 5
+
+
+def _fts_work_order_ids(base, query_text, k):
     for query in _queries(query_text):
-        work_orders = (
-            WorkOrder.objects.filter(
-                status=WorkOrderStatus.COMPLETED,
-                equipment__manufacturer__iexact=equipment.manufacturer,
-                equipment__model_number__iexact=equipment.model_number,
-            )
-            .filter(
+        ids = list(
+            base.filter(
                 Q(complaints__description__search=query)
                 | Q(remarks__text__search=query)
             )
             .distinct()
             .order_by("-repair_completed_at")
-            .prefetch_related("complaints", "remarks")[:k]
+            .values_list("id", flat=True)[:k]
         )
-        rows = [
-            {
-                "wo_id": wo.id,
-                "completed_at": wo.repair_completed_at,
-                "fault_category": wo.get_fault_category_display()
-                if wo.fault_category
-                else "",
-                "remarks": [r.text for r in wo.remarks.all()],
-                "complaints": [c.description for c in wo.complaints.all()],
-            }
-            for wo in work_orders
-        ]
-        if rows:
-            return rows
+        if ids:
+            return ids
     return []
+
+
+def similar_repairs(
+    equipment, query_text, fault_category=None, exclude_wo_id=None, k=STUFF_LIMIT
+):
+    """Deterministic past-fix retrieval (spec §2): same manufacturer+model,
+    optional category scope. ≤ k candidates → all of them (nothing to
+    miss); > k → FTS-ranked top k, most-recent k when FTS finds nothing."""
+    base = WorkOrder.objects.filter(
+        status=WorkOrderStatus.COMPLETED,
+        equipment__manufacturer__iexact=equipment.manufacturer,
+        equipment__model_number__iexact=equipment.model_number,
+    )
+    if fault_category:
+        base = base.filter(fault_category=fault_category)
+    if exclude_wo_id:
+        base = base.exclude(pk=exclude_wo_id)
+
+    recent_ids = list(
+        base.order_by("-repair_completed_at").values_list("id", flat=True)[: k + 1]
+    )
+    if len(recent_ids) > k:
+        ids = _fts_work_order_ids(base, query_text, k) or recent_ids[:k]
+    else:
+        ids = recent_ids
+    work_orders = (
+        WorkOrder.objects.filter(id__in=ids)
+        .order_by("-repair_completed_at")
+        .prefetch_related("complaints", "remarks")
+    )
+    return [
+        {
+            "wo_id": wo.id,
+            "completed_at": wo.repair_completed_at,
+            "fault_category": wo.get_fault_category_display()
+            if wo.fault_category
+            else "",
+            "remarks": [r.text for r in wo.remarks.all()],
+            "complaints": [c.description for c in wo.complaints.all()],
+        }
+        for wo in work_orders
+    ]
