@@ -58,3 +58,70 @@ def test_process_replaces_old_chunks(manual, monkeypatch):
     first_ids = set(manual.chunks.values_list("id", flat=True))
     manuals.process(manual)
     assert set(manual.chunks.values_list("id", flat=True)).isdisjoint(first_ids)
+
+
+def _fake_vectors(texts, **kwargs):
+    from django.conf import settings
+
+    return [[1.0] + [0.0] * (settings.EMBEDDING_DIM - 1) for _ in texts]
+
+
+@pytest.fixture
+def processed_manual(db, engineer, monkeypatch):
+    from apps.ai import manuals
+    from apps.ai.models import ServiceManual
+
+    manual = ServiceManual.objects.create(
+        manufacturer="Hamilton", model_number="C2",
+        title="C2 Manual", uploaded_by=engineer,
+    )
+    monkeypatch.setattr(
+        manuals, "extract_pages", lambda f: ["troubleshooting text " * 100]
+    )
+    return manual
+
+
+def test_process_embeds_chunks_and_stamps_model(processed_manual, monkeypatch, settings):
+    from apps.ai import manuals
+
+    monkeypatch.setattr(manuals.embeddings, "embed_documents", _fake_vectors)
+    manuals.process(processed_manual)
+    processed_manual.refresh_from_db()
+    assert processed_manual.status == "ready"
+    assert processed_manual.embedding_model == settings.EMBEDDING_MODEL
+    assert processed_manual.status_note == ""
+    assert not processed_manual.chunks.filter(embedding__isnull=True).exists()
+
+
+def test_process_survives_embedding_outage(processed_manual, monkeypatch):
+    from apps.ai import manuals
+    from apps.ai.embeddings import EmbeddingUnavailable
+
+    def down(texts, **kwargs):
+        raise EmbeddingUnavailable("connection refused")
+
+    monkeypatch.setattr(manuals.embeddings, "embed_documents", down)
+    manuals.process(processed_manual)
+    processed_manual.refresh_from_db()
+    assert processed_manual.status == "ready"
+    assert processed_manual.embedding_model == ""
+    assert processed_manual.status_note == (
+        "embeddings unavailable — keyword search only"
+    )
+    assert not processed_manual.chunks.exclude(embedding__isnull=True).exists()
+
+
+def test_embed_chunks_batches_requests(processed_manual, monkeypatch, settings):
+    from apps.ai import manuals
+
+    settings.EMBEDDING_BATCH_SIZE = 2
+    calls = []
+
+    def counting(texts, **kwargs):
+        calls.append(len(texts))
+        return _fake_vectors(texts)
+
+    monkeypatch.setattr(manuals.embeddings, "embed_documents", counting)
+    manuals.process(processed_manual)
+    assert all(size <= 2 for size in calls)
+    assert sum(calls) == processed_manual.chunks.count()
