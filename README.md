@@ -51,6 +51,16 @@ uv run python manage.py seed_demo   # optional: 90 days of demo data
 uv run python manage.py runserver
 ```
 
+Or run everything in Docker with a hot-reloading dev server (no local
+Python setup needed):
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+```
+
+App at http://localhost:8000; code edits reload automatically (restart the
+`worker` service after changing background-task code).
+
 ## AI features (upcoming)
 
 The app talks to any OpenAI-compatible LLM endpoint — pick one via `.env`:
@@ -70,11 +80,10 @@ an existing deployment also needs one `manage.py reembed_manuals` run after
 `migrate`, to embed manuals uploaded before this release — until then they
 stay keyword-only search.
 
-First start with the bundled container, pull the default models once:
-
-    docker compose up -d ollama
-    docker compose exec ollama ollama pull llama3.2:3b
-    docker compose exec ollama ollama pull nomic-embed-text
+The bundled setup needs no manual model download: on `docker compose up` a
+one-shot `ollama-init` service pulls the chat and embedding models
+(`LLM_MODEL` / `EMBEDDING_MODEL` from `.env`) into the Ollama volume and
+exits — the first run downloads ~2 GB, later runs are near-instant.
 
 Everything degrades gracefully with no LLM: reports generate without the
 narrative, risk scores compute without explanations, and manual search falls

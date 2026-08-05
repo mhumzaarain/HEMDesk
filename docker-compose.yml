@@ -57,6 +57,23 @@ services:
     volumes:
       - ollama:/root/.ollama
 
+  ollama-init:
+    # One-shot: pulls the chat + embedding models into the shared volume,
+    # then exits. Idempotent — cached models make re-runs near-instant.
+    image: ollama/ollama:latest
+    depends_on:
+      - ollama
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["ollama pull ${LLM_MODEL:-llama3.2:3b} && ollama pull ${EMBEDDING_MODEL:-nomic-embed-text}"]
+    restart: "no"
+    deploy:
+      # Swarm equivalent of restart:no — without it, `docker stack deploy`
+      # would endlessly restart this exited one-shot.
+      restart_policy:
+        condition: none
+
 volumes:
   pgdata:
   staticfiles:
