@@ -95,3 +95,53 @@ def test_answer_uses_interactive_mode(equipment, engineer, monkeypatch, db):
     )
     assistant.answer(question.id)
     assert seen.get("interactive") is True
+
+
+def test_build_messages_scopes_similar_repairs_by_category(equipment, monkeypatch):
+    from apps.ai import assistant
+
+    captured = {}
+
+    def fake_similar(eq, question, fault_category=None, exclude_wo_id=None):
+        captured["fault_category"] = fault_category
+        captured["exclude_wo_id"] = exclude_wo_id
+        return []
+
+    monkeypatch.setattr(assistant.retrieval, "similar_repairs", fake_similar)
+    messages = assistant.build_messages(
+        equipment, None, "screen dark", fault_category="display_monitor"
+    )
+    assert captured["fault_category"] == "display_monitor"
+    assert captured["exclude_wo_id"] is None
+    assert "category: Display / Monitor" in messages[1]["content"]
+
+
+def test_build_messages_defaults_to_all_categories(equipment, monkeypatch):
+    from apps.ai import assistant
+
+    monkeypatch.setattr(
+        assistant.retrieval,
+        "similar_repairs",
+        lambda eq, q, fault_category=None, exclude_wo_id=None: [],
+    )
+    messages = assistant.build_messages(equipment, None, "screen dark")
+    assert "category: all" in messages[1]["content"]
+
+
+def test_build_messages_excludes_current_work_order(
+    equipment, make_work_order, monkeypatch
+):
+    from apps.ai import assistant
+
+    captured = {}
+    wo = make_work_order()
+    monkeypatch.setattr(
+        assistant.retrieval,
+        "similar_repairs",
+        lambda eq, q, fault_category=None, exclude_wo_id=None: captured.update(
+            exclude_wo_id=exclude_wo_id
+        )
+        or [],
+    )
+    assistant.build_messages(equipment, wo, "q")
+    assert captured["exclude_wo_id"] == wo.id

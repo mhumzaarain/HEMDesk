@@ -87,6 +87,13 @@ class AssistantSendView(RoleRequiredMixin, View):
 
         context = _assistant_context(request, equipment_id)
         content = request.POST.get("content", "").strip()
+
+        from apps.maintenance.models import FaultCategory
+
+        fault_category = request.POST.get("fault_category", "").strip()
+        if fault_category not in FaultCategory.values:
+            fault_category = ""
+
         if content:
             message = AssistantMessage.objects.create(
                 equipment=context["equipment"],
@@ -95,5 +102,7 @@ class AssistantSendView(RoleRequiredMixin, View):
                 role=AssistantRole.USER,
                 content=content,
             )
-            tasks.answer_assistant_chat.defer(message_id=message.id)
+            tasks.answer_assistant_chat.defer(
+                message_id=message.id, fault_category=fault_category or None
+            )
         return render(request, "ai/_assistant_messages.html", context)

@@ -4,6 +4,8 @@ instance from the page the chat lives on."""
 
 import logging
 
+from apps.maintenance.models import FaultCategory
+
 from . import client, retrieval
 from .models import AssistantMessage, AssistantRole, ServiceManual
 
@@ -62,8 +64,13 @@ def _manual_block(equipment, question):
     )
 
 
-def _similar_repairs_block(equipment, question):
-    rows = retrieval.similar_repairs(equipment, question)
+def _similar_repairs_block(equipment, question, fault_category, exclude_wo_id):
+    rows = retrieval.similar_repairs(
+        equipment,
+        question,
+        fault_category=fault_category,
+        exclude_wo_id=exclude_wo_id,
+    )
     if not rows:
         return "No similar past repairs found for this model."
     lines = []
@@ -83,13 +90,16 @@ def _history_block(equipment):
     return "\n".join(f"{m.role}: {m.content[:300]}" for m in turns) or "none"
 
 
-def build_messages(equipment, work_order, question):
+def build_messages(equipment, work_order, question, fault_category=None):
+    category_label = (
+        FaultCategory(fault_category).label if fault_category else "all"
+    )
     context = (
         f"{_device_card(equipment)}\n\n"
         f"== Work-order context ==\n{_work_order_block(work_order)}\n\n"
         f"== Service manual sections ==\n{_manual_block(equipment, question)}\n\n"
-        f"== Similar past repairs (same model) ==\n"
-        f"{_similar_repairs_block(equipment, question)}\n\n"
+        f"== Similar past repairs (same model, category: {category_label}) ==\n"
+        f"{_similar_repairs_block(equipment, question, fault_category, work_order.id if work_order else None)}\n\n"
         f"== Recent chat ==\n{_history_block(equipment)}\n\n"
         f"Engineer's question: {question}"
     )
@@ -99,13 +109,16 @@ def build_messages(equipment, work_order, question):
     ]
 
 
-def answer(message_id) -> AssistantMessage:
+def answer(message_id, fault_category=None) -> AssistantMessage:
     question = AssistantMessage.objects.select_related(
         "equipment__department", "work_order", "user"
     ).get(pk=message_id)
     try:
         messages = build_messages(
-            question.equipment, question.work_order, question.content
+            question.equipment,
+            question.work_order,
+            question.content,
+            fault_category=fault_category,
         )
         content = client.chat(messages, interactive=True)
     except client.LLMUnavailable:

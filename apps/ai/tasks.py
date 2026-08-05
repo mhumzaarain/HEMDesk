@@ -88,7 +88,7 @@ def process_manual(manual_id):
 
 
 @app.task(name="ai.answer_assistant_chat", retry=0)
-def answer_assistant_chat(message_id):
+def answer_assistant_chat(message_id, fault_category=None):
     from . import assistant
 
-    assistant.answer(message_id)
+    assistant.answer(message_id, fault_category=fault_category)
