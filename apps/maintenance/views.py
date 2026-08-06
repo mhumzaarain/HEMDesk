@@ -177,7 +177,7 @@ def workorder_detail(request, pk):
     _require_engineer(request.user)
     wo = get_object_or_404(
         WorkOrder.objects.select_related(
-            "equipment__department", "opened_by"
+            "equipment__department", "opened_by", "fault_category"
         ).prefetch_related("remarks__author", "participants", "complaints__reporter"),
         pk=pk,
     )

@@ -261,3 +261,36 @@ def test_completion_form_shows_each_category_description(client, equipment, engi
     html = client.get(f"/maintenance/workorders/{wo.pk}/complete/").content.decode()
 
     assert "A circuit board or module was repaired or replaced" in html
+
+
+def test_workorder_detail_fetches_the_fault_category_in_one_query(
+    client, engineer, equipment, fault
+):
+    """The template renders {{ wo.fault_category }}; without select_related
+    that is an extra query on every view of a completed work order."""
+    from django.db import connection
+    from django.test.utils import CaptureQueriesContext
+
+    from apps.maintenance.services import complete_work_order
+
+    open_wo = start_repair(open_work_order(equipment, engineer), engineer)
+    completed = complete_work_order(
+        open_wo, engineer, fault_category=fault("electrical")
+    )
+
+    client.force_login(engineer)
+
+    def count(pk):
+        with CaptureQueriesContext(connection) as ctx:
+            assert client.get(reverse("workorder_detail", args=[pk])).status_code == 200
+        return [q["sql"] for q in ctx.captured_queries]
+
+    queries = count(completed.pk)
+    lone_lookups = [
+        sql
+        for sql in queries
+        if "maintenance_faultcategory" in sql and "maintenance_workorder" not in sql
+    ]
+    # One query legitimately lists every category for the assistant panel's
+    # dropdown; a second one would be the per-work-order lookup.
+    assert len(lone_lookups) == 1, lone_lookups

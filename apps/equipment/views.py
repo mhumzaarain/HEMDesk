@@ -94,7 +94,9 @@ class EquipmentDetailView(LoginRequiredMixin, DetailView):
         ctx = super().get_context_data(**kwargs)
         eq = self.object
         ctx["status_events"] = eq.status_events.select_related("actor")
-        ctx["work_orders"] = eq.work_orders.prefetch_related("remarks", "participants")
+        ctx["work_orders"] = eq.work_orders.select_related(
+            "fault_category"
+        ).prefetch_related("remarks", "participants")
         ctx["open_complaints"] = eq.complaints.exclude(status="closed")
         ctx["accessories"] = eq.accessories.select_related("type")
         replaced_breakdown = list(
