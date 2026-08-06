@@ -99,8 +99,43 @@ describe it in the remarks.
       dropdown; lower numbers appear first.
 3. Click **Save**.
 
-The internal code is set once, when you save the category, and cannot be
-changed afterwards — so it doesn't matter which name you give it later.
+There is a fourth box on the form, **Slug**. Leave it alone — the next section
+explains what it is and the two occasions when HEMDesk will ask you to fill it
+in yourself.
+
+### The internal code
+
+Alongside the name you type, each category carries a short **internal code** —
+the **Slug** box on the form. It is a plain-text version of the name, in small
+letters with hyphens instead of spaces: `Water ingress` becomes
+`water-ingress`. HEMDesk fills it in for you as you type the name, so in normal
+use you never touch it.
+
+The code is how HEMDesk remembers, behind the scenes, which category a repair
+was given. Every completed repair points at the code rather than at the words
+you typed. **The code is set once, when the category is first saved, and never
+changes afterwards** — that is exactly what makes renaming a category safe, and
+why a rename shows up on every repair already recorded against it.
+
+Two things can go wrong when the code is being worked out, and HEMDesk tells
+you about both on the form rather than letting them through.
+
+**Two categories cannot share a code.** Because the code ignores capitals and
+punctuation, `battery`, `Battery` and `Battery!` all reduce to the same code,
+`battery`. If you try to add a category whose name differs from an existing one
+only in that way, HEMDesk refuses to save it and shows a message under **Name**
+naming the category already using that code. Nothing is created. The remedy is
+to pick a genuinely different name — `Battery / charging` rather than
+`battery` — not to work around it.
+
+**Some names produce no code at all.** A name written in a script that has no
+plain-text equivalent — Urdu, Arabic, Chinese — or one made only of punctuation
+leaves nothing for HEMDesk to build a code from. When that happens you get a
+message under **Slug** asking you to type a code yourself. Put a short
+description of the category in that box, in small letters, using only letters,
+numbers and hyphens — for example `water-ingress` — and save again. The name
+stays exactly as you wrote it, and the name is what engineers, the dashboard
+and the reports show — the code is only ever seen here in the admin site.
 
 ### Renaming or removing a fault category
 
