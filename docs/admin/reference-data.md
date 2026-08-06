@@ -99,17 +99,20 @@ describe it in the remarks.
       dropdown; lower numbers appear first.
 3. Click **Save**.
 
-There is a fourth box on the form, **Slug**. Leave it alone — the next section
-explains what it is and the two occasions when HEMDesk will ask you to fill it
+There is a fourth box on the form, **Slug**. Leave it empty — the next section
+explains what it is, and the one occasion when HEMDesk will ask you to fill it
 in yourself.
 
 ### The internal code
 
 Alongside the name you type, each category carries a short **internal code** —
 the **Slug** box on the form. It is a plain-text version of the name, in small
-letters with hyphens instead of spaces: `Water ingress` becomes
-`water-ingress`. HEMDesk fills it in for you as you type the name, so in normal
-use you never touch it.
+letters with no spaces or punctuation: `Water ingress` becomes `water-ingress`.
+The eight categories HEMDesk ships with use an underscore where you might
+expect a hyphen — `electronic_boards`, `display_monitor`, `accessory_probe` —
+which is why the list looks slightly inconsistent; both forms work the same
+way. HEMDesk works the code out from the name when you save, so in normal use
+you leave the box empty and never touch it.
 
 The code is how HEMDesk remembers, behind the scenes, which category a repair
 was given. Every completed repair points at the code rather than at the words
