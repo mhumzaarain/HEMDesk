@@ -24,7 +24,7 @@ If you don't have credentials yet, ask an admin to create your account. (Admins:
 You land on the home screen, greeted by name and your employee ID, with a set of cards for the things you do most often.
 
 !!! note
-    Demo installs only — these accounts exist purely for trying out the app and are not present in a real deployment:
+    Demo installs only — these accounts exist purely for trying out the app and are not present in a real deployment. They appear only after someone runs `uv run cli.py manage seed_demo`; a freshly started app has no accounts at all.
 
     | Username | Role | Employee ID |
     | --- | --- | --- |
@@ -32,7 +32,7 @@ You land on the home screen, greeted by name and your employee ID, with a set of
     | `engineer1`, `engineer2`, `engineer3` | Biomedical Engineer | `EMP-101`–`EMP-103` |
     | `staff1`–`staff10` | Staff | `EMP-001`–`EMP-009`, `EMP-0010` |
 
-    All demo accounts share the password `demo1234`.
+    All demo accounts share one password: the `DEMO_PASSWORD` line in the installation's `.env` file.
 
 ## What each role sees
 
