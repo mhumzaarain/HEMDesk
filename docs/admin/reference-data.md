@@ -203,9 +203,9 @@ people using the app properly, which keeps the history trustworthy.
 
 | Section | You can | You cannot |
 | --- | --- | --- |
-| Departments | Add, edit, delete | — |
+| Departments | Add, edit, delete while nothing uses it | Delete one that still has equipment or people |
 | Users | Add, edit, delete | — |
-| Fault categories | Add, edit, delete | — |
+| Fault categories | Add, edit, delete while no repair has used it | Delete one a repair has used (rename it instead) |
 | Equipment | Add, edit | Delete (condemn it in the app instead) |
 | Accessory types | Add, edit | Delete |
 | Service manuals | Add, edit, delete | — |
