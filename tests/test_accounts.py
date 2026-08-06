@@ -120,3 +120,44 @@ def test_a_superuser_keeps_admin_site_access_whatever_the_role(db, django_user_m
     boss.save()
     boss.refresh_from_db()
     assert boss.is_staff is True
+
+
+def test_align_is_staff_migration_backfills_rows_that_disagree(db, django_user_model):
+    """0003 is an AlterField only: on an existing database is_staff keeps its
+    old value until the row is next saved. 0004 backfills it."""
+    import importlib
+
+    from django.apps import apps as global_apps
+
+    migration = importlib.import_module(
+        "apps.accounts.migrations.0004_align_is_staff"
+    )
+
+    def make(username, employee_id, role, stale_is_staff, superuser=False):
+        maker = (
+            django_user_model.objects.create_superuser
+            if superuser
+            else django_user_model.objects.create_user
+        )
+        user = maker(
+            username=username, password="pw", employee_id=employee_id, role=role
+        )
+        # .update() bypasses User.save(), which is exactly how a legacy row
+        # gets to disagree with its role in the first place.
+        django_user_model.objects.filter(pk=user.pk).update(is_staff=stale_is_staff)
+        return user
+
+    legacy_engineer = make("legacy-eng", "EMP-L1", "engineer", True)
+    stale_admin = make("legacy-admin", "EMP-L2", "admin", False)
+    stale_boss = make("legacy-root", "EMP-L3", "staff", False, superuser=True)
+    plain_staff = make("legacy-nurse", "EMP-L4", "staff", False)
+
+    migration.align_is_staff(global_apps, None)
+
+    def is_staff(user):
+        return django_user_model.objects.get(pk=user.pk).is_staff
+
+    assert is_staff(legacy_engineer) is False
+    assert is_staff(stale_admin) is True
+    assert is_staff(stale_boss) is True
+    assert is_staff(plain_staff) is False
