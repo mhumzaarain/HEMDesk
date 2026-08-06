@@ -138,6 +138,26 @@ def test_admin_index_has_no_groups_section(client, django_user_model):
     assert "/admin/auth/group/" not in html
 
 
+def test_user_changelist_has_no_groups_filter_even_when_a_group_exists(
+    client, django_user_model
+):
+    """Django only renders a related-field filter when rows exist, so this
+    has to create a Group or it passes for the wrong reason."""
+    from django.contrib.auth.models import Group
+
+    group = Group.objects.create(name="Legacy")
+    boss = django_user_model.objects.create_superuser(
+        username="root4", password="pw", employee_id="EMP-996"
+    )
+    client.force_login(boss)
+
+    html = client.get("/admin/accounts/user/").content.decode()
+
+    assert "groups__id__exact" not in html
+    assert "By groups" not in html
+    assert group.name not in html
+
+
 def test_user_admin_add_form_offers_usable_password_toggle(client, django_user_model):
     boss = django_user_model.objects.create_superuser(
         username="root3", password="pw", employee_id="EMP-997"

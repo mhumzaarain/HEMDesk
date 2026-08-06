@@ -13,6 +13,9 @@ admin.site.unregister(Group)
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
     list_display = ("username", "employee_id", "role", "first_name", "last_name")
+    # Without this the changelist inherits UserAdmin's "groups" filter, which
+    # reappears the moment a Group row exists — and this branch deletes none.
+    list_filter = ("is_staff", "is_superuser", "is_active")
     readonly_fields = ("is_staff",)
     fieldsets = (
         (None, {"fields": ("username", "password")}),
