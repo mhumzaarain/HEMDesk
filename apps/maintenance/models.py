@@ -2,8 +2,10 @@ import calendar
 from datetime import date, timedelta
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
+from django.utils.text import slugify
 
 from apps.core.models import AppendOnlyModel, NoDeleteModel
 from apps.equipment.models import Equipment
@@ -33,15 +35,78 @@ class WorkOrderOutcome(models.TextChoices):
     CONDEMNED = "condemned", "Condemned"
 
 
-class FaultCategory(models.TextChoices):
-    ELECTRICAL = "electrical", "Electrical"
-    BATTERY_POWER = "battery_power", "Battery / Power"
-    DISPLAY_MONITOR = "display_monitor", "Display / Monitor"
-    MECHANICAL = "mechanical", "Mechanical"
-    CALIBRATION = "calibration", "Calibration"
-    SOFTWARE = "software", "Software"
-    ACCESSORY_PROBE = "accessory_probe", "Accessory / Probe"
-    OTHER = "other", "Other"
+class FaultCategory(models.Model):
+    """Editable by administrators in the admin site. Deleting one is blocked
+    while any work order points at it (see WorkOrder.fault_category)."""
+
+    name = models.CharField(max_length=60, unique=True)
+    slug = models.SlugField(
+        max_length=40,
+        unique=True,
+        blank=True,
+        help_text="Stable internal code. Set once when the category is created.",
+    )
+    description = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text="Shown to the engineer on the repair completion form.",
+    )
+    sort_order = models.PositiveSmallIntegerField(
+        default=100, help_text="Lower numbers appear first in the dropdown."
+    )
+
+    class Meta:
+        ordering = ["sort_order", "name"]
+        verbose_name = "fault category"
+        verbose_name_plural = "fault categories"
+
+    def clean(self):
+        # An administrator adding a category fills in a name, not an internal
+        # code. Derive the code here, during validation, so that a name which
+        # yields no code or one already taken becomes a form error the
+        # administrator can act on rather than a database error page.
+        super().clean()
+        if self.slug:
+            # Already set — either typed by hand or carried by an existing
+            # category. The code never changes, so a rename is safe.
+            return
+        derived = slugify(self.name)[:40].strip("-")
+        if not derived:
+            raise ValidationError(
+                {
+                    "slug": "An internal code could not be built from this name. "
+                    "Type one yourself, using letters, numbers and hyphens."
+                }
+            )
+        clash = FaultCategory.objects.filter(slug=derived).exclude(pk=self.pk).first()
+        if clash:
+            raise ValidationError(
+                {
+                    "name": f"“{clash.name}” already uses the internal code "
+                    f"“{derived}”. Choose a different name."
+                }
+            )
+        self.slug = derived
+
+    def save(self, *args, **kwargs):
+        # Safety net for callers that skip validation — the seeder, management
+        # commands, the shell. Form-driven saves have already been through
+        # clean() above.
+        if not self.slug:
+            self.slug = slugify(self.name)[:40].strip("-")
+        if not self.slug:
+            # A row with an empty code would filter nothing in the assistant,
+            # record nothing in the audit trail, and could not be edited back
+            # into shape on the change form, where the code is read-only.
+            # Refuse it here so no such row can be created at all.
+            raise ValueError(
+                f"No internal code could be built from the name {self.name!r}. "
+                "Pass an explicit slug."
+            )
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.name
 
 
 class RemarkKind(models.TextChoices):
@@ -84,11 +149,12 @@ class WorkOrder(NoDeleteModel):
     outcome = models.CharField(
         max_length=20, choices=WorkOrderOutcome.choices, null=True, blank=True
     )
-    fault_category = models.CharField(
-        max_length=30,
-        choices=FaultCategory.choices,
+    fault_category = models.ForeignKey(
+        "maintenance.FaultCategory",
         null=True,
         blank=True,
+        on_delete=models.PROTECT,
+        related_name="workorders",
         help_text="Required when completing a repair.",
     )
     participants = models.ManyToManyField(

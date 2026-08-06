@@ -23,7 +23,7 @@
       <dt class="text-slate-500 dark:text-slate-400">Repair completed</dt><dd>{{ wo.repair_completed_at|default:"—" }}</dd>
       {% if wo.closed_by %}<dt class="text-slate-500 dark:text-slate-400">Closed by</dt><dd>{{ wo.closed_by }}</dd>{% endif %}
       {% if wo.outcome %}<dt class="text-slate-500 dark:text-slate-400">Outcome</dt><dd>{{ wo.get_outcome_display }}</dd>{% endif %}
-      {% if wo.fault_category %}<dt class="text-slate-500 dark:text-slate-400">Fault</dt><dd>{{ wo.get_fault_category_display }}</dd>{% endif %}
+      {% if wo.fault_category %}<dt class="text-slate-500 dark:text-slate-400">Fault</dt><dd>{{ wo.fault_category }}</dd>{% endif %}
       <dt class="text-slate-500 dark:text-slate-400">Participants</dt>
       <dd>{% for p in wo.participants.all %}{{ p }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</dd>
     </dl>

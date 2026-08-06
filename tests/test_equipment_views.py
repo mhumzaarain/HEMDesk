@@ -81,3 +81,37 @@ def test_detail_shows_status_history(client, engineer, equipment):
     response = client.get(reverse("equipment_detail", args=[equipment.pk]))
     assert response.status_code == 200
     assert b"checking" in response.content
+
+
+def test_detail_query_count_does_not_grow_with_completed_work_orders(
+    client, engineer, make_equipment, fault
+):
+    """The template renders {{ wo.fault_category }} for every completed work
+    order. Without select_related that is one extra query each."""
+    from django.db import connection
+    from django.test.utils import CaptureQueriesContext
+
+    from apps.maintenance.services import (
+        complete_work_order,
+        open_work_order,
+        start_repair,
+    )
+
+    def build(serial, repairs):
+        eq = make_equipment(serial_number=serial)
+        for slug in ("electrical", "mechanical", "software")[:repairs]:
+            wo = start_repair(open_work_order(eq, engineer), engineer)
+            complete_work_order(wo, engineer, fault_category=fault(slug))
+        return eq
+
+    one = build("SN-N1-1", 1)
+    three = build("SN-N1-3", 3)
+
+    client.force_login(engineer)
+
+    def count(eq):
+        with CaptureQueriesContext(connection) as ctx:
+            assert client.get(reverse("equipment_detail", args=[eq.pk])).status_code
+        return len(ctx)
+
+    assert count(one) == count(three)

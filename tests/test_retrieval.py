@@ -3,14 +3,16 @@ from django.utils import timezone
 
 from apps.ai import manuals, retrieval
 from apps.ai.models import ServiceManual
-from apps.maintenance.models import Complaint, Remark, WorkOrderStatus
+from apps.maintenance.models import Complaint, FaultCategory, Remark, WorkOrderStatus
 
 
 @pytest.fixture
 def indexed_manual(db, engineer, monkeypatch):
     manual = ServiceManual.objects.create(
-        manufacturer="Hamilton", model_number="C2",
-        title="C2 Manual", uploaded_by=engineer,
+        manufacturer="Hamilton",
+        model_number="C2",
+        title="C2 Manual",
+        uploaded_by=engineer,
     )
     pages = [
         "Chapter 1: routine cleaning and calibration schedules. " * 30,
@@ -38,11 +40,15 @@ def test_similar_repairs_matches_same_model_history(
 ):
     sibling = make_equipment(serial_number="SN-2")  # same Hamilton C2 model
     wo = make_work_order(
-        eq=sibling, status=WorkOrderStatus.COMPLETED,
-        repair_completed_at=timezone.now(), fault_category="electrical",
+        eq=sibling,
+        status=WorkOrderStatus.COMPLETED,
+        repair_completed_at=timezone.now(),
+        fault_category=FaultCategory.objects.get(slug="electrical"),
     )
     Complaint.objects.create(
-        equipment=sibling, reporter=engineer, work_order=wo,
+        equipment=sibling,
+        reporter=engineer,
+        work_order=wo,
         description="ventilator shows no oxygen error",
     )
     Remark.objects.create(work_order=wo, author=engineer, text="replaced O2 cell")
@@ -56,11 +62,14 @@ def test_similar_repairs_ignores_other_models(
 ):
     other = make_equipment(serial_number="SN-3", model_number="G5")
     wo = make_work_order(
-        eq=other, status=WorkOrderStatus.COMPLETED,
+        eq=other,
+        status=WorkOrderStatus.COMPLETED,
         repair_completed_at=timezone.now(),
     )
     Complaint.objects.create(
-        equipment=other, reporter=engineer, work_order=wo,
+        equipment=other,
+        reporter=engineer,
+        work_order=wo,
         description="no oxygen error here too",
     )
     assert retrieval.similar_repairs(equipment, "no oxygen error") == []
@@ -80,9 +89,7 @@ def hybrid_manual(indexed_manual, monkeypatch, settings):
         chunk.save(update_fields=["embedding"])
     indexed_manual.embedding_model = django_settings.EMBEDDING_MODEL
     indexed_manual.save(update_fields=["embedding_model"])
-    monkeypatch.setattr(
-        retrieval.embeddings, "embed_query", lambda text, **kw: target
-    )
+    monkeypatch.setattr(retrieval.embeddings, "embed_query", lambda text, **kw: target)
     return indexed_manual
 
 
@@ -125,17 +132,28 @@ def test_unembedded_manual_uses_fts_only(indexed_manual, monkeypatch):
     assert sections and "NO OXYGEN" in sections[0].text
 
 
-def _completed_wo(make_equipment, make_work_order, engineer, serial, description,
-                  category="electrical", model_number="C2"):
+def _completed_wo(
+    make_equipment,
+    make_work_order,
+    engineer,
+    serial,
+    description,
+    category="electrical",
+    model_number="C2",
+):
     from apps.maintenance.models import Complaint, Remark
 
     device = make_equipment(serial_number=serial, model_number=model_number)
     wo = make_work_order(
-        eq=device, status=WorkOrderStatus.COMPLETED,
-        repair_completed_at=timezone.now(), fault_category=category,
+        eq=device,
+        status=WorkOrderStatus.COMPLETED,
+        repair_completed_at=timezone.now(),
+        fault_category=FaultCategory.objects.get(slug=category),
     )
     Complaint.objects.create(
-        equipment=device, reporter=engineer, work_order=wo,
+        equipment=device,
+        reporter=engineer,
+        work_order=wo,
         description=description,
     )
     Remark.objects.create(work_order=wo, author=engineer, text=f"fix for {serial}")
@@ -146,8 +164,13 @@ def test_small_history_is_stuffed_without_wording_match(
     equipment, make_equipment, make_work_order, engineer, db
 ):
     for i in range(3):
-        _completed_wo(make_equipment, make_work_order, engineer,
-                      f"SN-S{i}", "totally unrelated wording")
+        _completed_wo(
+            make_equipment,
+            make_work_order,
+            engineer,
+            f"SN-S{i}",
+            "totally unrelated wording",
+        )
     rows = retrieval.similar_repairs(equipment, "display blinking gibberish")
     assert len(rows) == 3  # previously FTS would return []
 
@@ -155,10 +178,22 @@ def test_small_history_is_stuffed_without_wording_match(
 def test_fault_category_filters_candidates(
     equipment, make_equipment, make_work_order, engineer, db
 ):
-    match = _completed_wo(make_equipment, make_work_order, engineer,
-                          "SN-C1", "screen issue", category="display_monitor")
-    _completed_wo(make_equipment, make_work_order, engineer,
-                  "SN-C2", "power issue", category="battery_power")
+    match = _completed_wo(
+        make_equipment,
+        make_work_order,
+        engineer,
+        "SN-C1",
+        "screen issue",
+        category="display_monitor",
+    )
+    _completed_wo(
+        make_equipment,
+        make_work_order,
+        engineer,
+        "SN-C2",
+        "power issue",
+        category="accessory_probe",
+    )
     rows = retrieval.similar_repairs(
         equipment, "anything", fault_category="display_monitor"
     )
@@ -168,8 +203,9 @@ def test_fault_category_filters_candidates(
 def test_current_work_order_is_excluded(
     equipment, make_equipment, make_work_order, engineer, db
 ):
-    own = _completed_wo(make_equipment, make_work_order, engineer,
-                        "SN-E1", "own complaint")
+    own = _completed_wo(
+        make_equipment, make_work_order, engineer, "SN-E1", "own complaint"
+    )
     rows = retrieval.similar_repairs(equipment, "x", exclude_wo_id=own.id)
     assert own.id not in [r["wo_id"] for r in rows]
 
@@ -178,10 +214,20 @@ def test_large_history_ranks_by_fts(
     equipment, make_equipment, make_work_order, engineer, db
 ):
     for i in range(6):
-        _completed_wo(make_equipment, make_work_order, engineer,
-                      f"SN-L{i}", "routine battery swap")
-    hit = _completed_wo(make_equipment, make_work_order, engineer,
-                        "SN-HIT", "ventilator shows no oxygen error")
+        _completed_wo(
+            make_equipment,
+            make_work_order,
+            engineer,
+            f"SN-L{i}",
+            "routine battery swap",
+        )
+    hit = _completed_wo(
+        make_equipment,
+        make_work_order,
+        engineer,
+        "SN-HIT",
+        "ventilator shows no oxygen error",
+    )
     rows = retrieval.similar_repairs(equipment, "no oxygen error")
     assert rows[0]["wo_id"] == hit.id
     assert len(rows) <= 5
@@ -191,8 +237,13 @@ def test_large_history_falls_back_to_most_recent(
     equipment, make_equipment, make_work_order, engineer, db
 ):
     for i in range(7):
-        _completed_wo(make_equipment, make_work_order, engineer,
-                      f"SN-R{i}", "routine battery swap")
+        _completed_wo(
+            make_equipment,
+            make_work_order,
+            engineer,
+            f"SN-R{i}",
+            "routine battery swap",
+        )
     rows = retrieval.similar_repairs(equipment, "zzz nomatch qqq")
     assert len(rows) == 5
 
@@ -203,10 +254,20 @@ def test_thin_fts_match_is_padded_with_recent(
     # 6 unrelated repairs + 1 keyword hit: the hit must not shrink the
     # context — remaining seats are filled by the most recent repairs.
     for i in range(6):
-        _completed_wo(make_equipment, make_work_order, engineer,
-                      f"SN-P{i}", "routine battery swap")
-    hit = _completed_wo(make_equipment, make_work_order, engineer,
-                        "SN-PHIT", "ventilator shows no oxygen error")
+        _completed_wo(
+            make_equipment,
+            make_work_order,
+            engineer,
+            f"SN-P{i}",
+            "routine battery swap",
+        )
+    hit = _completed_wo(
+        make_equipment,
+        make_work_order,
+        engineer,
+        "SN-PHIT",
+        "ventilator shows no oxygen error",
+    )
     rows = retrieval.similar_repairs(equipment, "no oxygen error")
     ids = [r["wo_id"] for r in rows]
     assert hit.id in ids

@@ -8,14 +8,14 @@ from apps.reports import metrics
 from apps.reports.models import MonthlyReport
 
 
-def test_month_metrics_is_json_serializable(db, make_work_order):
+def test_month_metrics_is_json_serializable(db, make_work_order, fault):
     import json
 
     now = timezone.now()
     make_work_order(
         status=WorkOrderStatus.COMPLETED,
         repair_completed_at=now,
-        fault_category="electrical",
+        fault_category=fault("electrical"),
     )
     month = date(now.year, now.month, 1)
     data = metrics.month_metrics(month)

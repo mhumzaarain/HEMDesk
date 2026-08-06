@@ -106,3 +106,67 @@ def test_change_password_rejects_wrong_old_password(client, staff_user):
     assert response.status_code == 200  # re-renders with errors
     staff_user.refresh_from_db()
     assert staff_user.check_password("pw")  # unchanged
+
+
+# --- admin site hides groups and permissions ---
+
+
+def test_user_admin_form_offers_no_groups_or_permissions(client, django_user_model):
+    boss = django_user_model.objects.create_superuser(
+        username="root", password="pw", employee_id="EMP-999"
+    )
+    client.force_login(boss)
+    html = client.get(f"/admin/accounts/user/{boss.pk}/change/").content.decode()
+
+    assert 'name="email"' in html
+    # is_staff is derived from role and shown read-only, so it renders as a
+    # labelled div (Django's AdminReadonlyField), not an <input name="is_staff">.
+    assert "field-is_staff" in html
+    assert 'name="is_staff"' not in html
+    assert 'name="employee_id"' in html
+    assert 'name="groups"' not in html
+    assert 'name="user_permissions"' not in html
+
+
+def test_admin_index_has_no_groups_section(client, django_user_model):
+    boss = django_user_model.objects.create_superuser(
+        username="root2", password="pw", employee_id="EMP-998"
+    )
+    client.force_login(boss)
+    html = client.get("/admin/").content.decode()
+
+    assert "/admin/auth/group/" not in html
+
+
+def test_user_changelist_has_no_groups_filter_even_when_a_group_exists(
+    client, django_user_model
+):
+    """Django only renders a related-field filter when rows exist, so this
+    has to create a Group or it passes for the wrong reason."""
+    from django.contrib.auth.models import Group
+
+    group = Group.objects.create(name="Legacy")
+    boss = django_user_model.objects.create_superuser(
+        username="root4", password="pw", employee_id="EMP-996"
+    )
+    client.force_login(boss)
+
+    html = client.get("/admin/accounts/user/").content.decode()
+
+    assert "groups__id__exact" not in html
+    assert "By groups" not in html
+    assert group.name not in html
+
+
+def test_user_admin_add_form_offers_usable_password_toggle(client, django_user_model):
+    boss = django_user_model.objects.create_superuser(
+        username="root3", password="pw", employee_id="EMP-997"
+    )
+    client.force_login(boss)
+    html = client.get("/admin/accounts/user/add/").content.decode()
+
+    assert 'name="usable_password"' in html
+    assert 'name="password1"' in html
+    assert 'name="password2"' in html
+    assert 'name="employee_id"' in html
+    assert 'name="groups"' not in html

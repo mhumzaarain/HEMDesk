@@ -16,8 +16,9 @@ def test_dashboard_renders_for_engineer(client, engineer):
     assert b"chart.umd.js" in response.content
 
 
-def test_dashboard_shows_complaints_resolved(client, engineer, staff_user, equipment):
-    from apps.maintenance.models import FaultCategory
+def test_dashboard_shows_complaints_resolved(
+    client, engineer, staff_user, equipment, fault
+):
     from apps.maintenance.services import (
         complete_work_order,
         lodge_complaint,
@@ -27,7 +28,7 @@ def test_dashboard_shows_complaints_resolved(client, engineer, staff_user, equip
 
     lodge_complaint(staff_user, equipment, "no power")
     wo = start_repair(open_work_order(equipment, engineer), engineer)
-    complete_work_order(wo, engineer, fault_category=FaultCategory.ELECTRICAL)
+    complete_work_order(wo, engineer, fault_category=fault("electrical"))
     client.force_login(engineer)
     response = client.get(reverse("dashboard"))
     assert response.status_code == 200
@@ -41,8 +42,7 @@ def test_drilldown_requires_engineer(client, staff_user, engineer):
     )
 
 
-def test_drilldown_lists_resolved(client, engineer, staff_user, equipment):
-    from apps.maintenance.models import FaultCategory
+def test_drilldown_lists_resolved(client, engineer, staff_user, equipment, fault):
     from apps.maintenance.services import (
         complete_work_order,
         lodge_complaint,
@@ -52,7 +52,7 @@ def test_drilldown_lists_resolved(client, engineer, staff_user, equipment):
 
     lodge_complaint(staff_user, equipment, "no power")
     wo = start_repair(open_work_order(equipment, engineer), engineer)
-    complete_work_order(wo, engineer, fault_category=FaultCategory.ELECTRICAL)
+    complete_work_order(wo, engineer, fault_category=fault("electrical"))
     client.force_login(engineer)
     response = client.get(reverse("engineer_resolved", args=[engineer.pk]))
     assert response.status_code == 200

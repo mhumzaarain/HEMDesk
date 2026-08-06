@@ -84,20 +84,21 @@ def _similar_repairs_block(equipment, question, fault_category, exclude_wo_id):
 
 
 def _history_block(equipment):
-    turns = list(
-        equipment.assistant_messages.order_by("-created_at")[:HISTORY_TURNS]
-    )[::-1]
+    turns = list(equipment.assistant_messages.order_by("-created_at")[:HISTORY_TURNS])[
+        ::-1
+    ]
     return "\n".join(f"{m.role}: {m.content[:300]}" for m in turns) or "none"
 
 
 def build_messages(equipment, work_order, question, fault_category=None):
-    category_label = (
-        FaultCategory(fault_category).label if fault_category else "all"
+    category = (
+        FaultCategory.objects.filter(slug=fault_category).first()
+        if fault_category
+        else None
     )
+    category_label = category.name if category else "all"
     exclude_wo_id = work_order.id if work_order else None
-    repairs = _similar_repairs_block(
-        equipment, question, fault_category, exclude_wo_id
-    )
+    repairs = _similar_repairs_block(equipment, question, fault_category, exclude_wo_id)
     context = (
         f"{_device_card(equipment)}\n\n"
         f"== Work-order context ==\n{_work_order_block(work_order)}\n\n"

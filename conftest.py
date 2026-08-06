@@ -77,6 +77,14 @@ def department2(db):
 
 
 @pytest.fixture
+def fault(db):
+    """Look up a seeded fault category by slug: fault("electrical")."""
+    from apps.maintenance.models import FaultCategory
+
+    return lambda slug: FaultCategory.objects.get(slug=slug)
+
+
+@pytest.fixture
 def make_equipment(department):
     def _make(**overrides):
         fields = dict(

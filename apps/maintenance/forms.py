@@ -20,6 +20,17 @@ INPUT = (
 )
 
 
+class NoDefaultSelectionSelect(forms.Select):
+    """A Select that never marks an option "selected" when no value has
+    been chosen, so the empty label is a genuine, non-selected placeholder
+    rather than Django's usual (silently pre-selected) blank option."""
+
+    def format_value(self, value):
+        if value is None:
+            return []
+        return super().format_value(value)
+
+
 class ComplaintForm(forms.Form):
     equipment = forms.ModelChoiceField(
         queryset=Equipment.objects.all(), widget=forms.HiddenInput
@@ -76,9 +87,11 @@ class CloseComplaintForm(forms.Form):
 
 
 class CompleteWorkOrderForm(forms.Form):
-    fault_category = forms.ChoiceField(
-        choices=FaultCategory.choices,
-        widget=forms.Select(attrs={"class": INPUT}),
+    fault_category = forms.ModelChoiceField(
+        queryset=FaultCategory.objects.all(),
+        empty_label="— Select a fault category —",
+        widget=NoDefaultSelectionSelect(attrs={"class": INPUT}),
+        error_messages={"required": "Choose the fault category for this repair."},
     )
     participants = forms.ModelMultipleChoiceField(
         queryset=get_user_model().objects.filter(
@@ -120,9 +133,7 @@ class PPMCompleteForm(forms.Form):
     performed_at = forms.DateField(
         widget=forms.DateInput(attrs={"type": "date", "class": INPUT})
     )
-    outcome = forms.ChoiceField(
-        choices=PPMOutcome.choices, widget=forms.RadioSelect
-    )
+    outcome = forms.ChoiceField(choices=PPMOutcome.choices, widget=forms.RadioSelect)
     engineers = forms.ModelMultipleChoiceField(
         queryset=get_user_model().objects.filter(
             role__in=[Roles.ENGINEER, Roles.ADMIN], is_active=True
