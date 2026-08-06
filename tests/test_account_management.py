@@ -119,7 +119,10 @@ def test_user_admin_form_offers_no_groups_or_permissions(client, django_user_mod
     html = client.get(f"/admin/accounts/user/{boss.pk}/change/").content.decode()
 
     assert 'name="email"' in html
-    assert 'name="is_staff"' in html
+    # is_staff is derived from role and shown read-only, so it renders as a
+    # labelled div (Django's AdminReadonlyField), not an <input name="is_staff">.
+    assert "field-is_staff" in html
+    assert 'name="is_staff"' not in html
     assert 'name="employee_id"' in html
     assert 'name="groups"' not in html
     assert 'name="user_permissions"' not in html

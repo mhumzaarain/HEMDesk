@@ -21,6 +21,24 @@ class User(AbstractUser):
 
     REQUIRED_FIELDS = ["employee_id"]
 
+    is_staff = models.BooleanField(
+        "Can open the admin site (administrators only)",
+        default=False,
+        help_text="Set automatically from the Role field. Role Admin grants "
+        "access; Staff and Biomedical Engineer do not.",
+    )
+
+    def save(self, *args, **kwargs):
+        # is_staff is Django's switch for admin-site access, and HEMDesk
+        # grants it from the Role field alone — nobody setting up an account
+        # should have to know the two are connected. Superusers keep access
+        # whatever their role: createsuperuser does not prompt for one, and
+        # stripping it would lock the only administrator out.
+        self.is_staff = self.is_superuser or self.role == Roles.ADMIN
+        if kwargs.get("update_fields") is not None:
+            kwargs["update_fields"] = set(kwargs["update_fields"]) | {"is_staff"}
+        super().save(*args, **kwargs)
+
     @property
     def is_engineer_or_admin(self) -> bool:
         return self.role in (Roles.ENGINEER, Roles.ADMIN)

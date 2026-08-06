@@ -13,6 +13,7 @@ admin.site.unregister(Group)
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
     list_display = ("username", "employee_id", "role", "first_name", "last_name")
+    readonly_fields = ("is_staff",)
     fieldsets = (
         (None, {"fields": ("username", "password")}),
         ("Personal info", {"fields": ("first_name", "last_name", "email")}),

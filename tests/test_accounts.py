@@ -53,3 +53,70 @@ def test_admin_link_hidden_from_non_staff(client, engineer):
     client.force_login(engineer)
     response = client.get(reverse("equipment_list"))
     assert b'href="/admin/"' not in response.content
+
+
+def test_admin_role_grants_admin_site_access(db, django_user_model):
+    user = django_user_model.objects.create_user(
+        username="chief", password="pw", employee_id="EMP-500", role="admin"
+    )
+    assert user.is_staff is True
+
+
+def test_engineer_and_staff_roles_do_not_grant_admin_site_access(db, django_user_model):
+    for username, role in [("eng9", "engineer"), ("nurse9", "staff")]:
+        user = django_user_model.objects.create_user(
+            username=username, password="pw", employee_id=f"EMP-{username}", role=role
+        )
+        assert user.is_staff is False
+
+
+def test_changing_the_role_flips_admin_site_access(db, django_user_model):
+    user = django_user_model.objects.create_user(
+        username="promoted", password="pw", employee_id="EMP-501", role="staff"
+    )
+    assert user.is_staff is False
+
+    user.role = "admin"
+    user.save()
+    user.refresh_from_db()
+    assert user.is_staff is True
+
+    user.role = "engineer"
+    user.save()
+    user.refresh_from_db()
+    assert user.is_staff is False
+
+
+def test_changing_only_the_role_still_writes_is_staff(db, django_user_model):
+    user = django_user_model.objects.create_user(
+        username="partial", password="pw", employee_id="EMP-504", role="staff"
+    )
+    user.role = "admin"
+    user.save(update_fields=["role"])
+    user.refresh_from_db()
+    assert user.is_staff is True
+
+
+def test_ticking_is_staff_by_hand_does_not_survive_a_save(db, django_user_model):
+    user = django_user_model.objects.create_user(
+        username="sneaky", password="pw", employee_id="EMP-502", role="staff"
+    )
+    user.is_staff = True
+    user.save()
+    user.refresh_from_db()
+    assert user.is_staff is False
+
+
+def test_a_superuser_keeps_admin_site_access_whatever_the_role(db, django_user_model):
+    # createsuperuser does not prompt for a role, so a superuser can end up
+    # with the default Staff role. Stripping is_staff here would lock the only
+    # administrator out of the admin site.
+    boss = django_user_model.objects.create_superuser(
+        username="root3", password="pw", employee_id="EMP-503"
+    )
+    assert boss.role == "staff"
+    assert boss.is_staff is True
+
+    boss.save()
+    boss.refresh_from_db()
+    assert boss.is_staff is True
