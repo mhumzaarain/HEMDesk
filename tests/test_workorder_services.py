@@ -6,7 +6,6 @@ from apps.equipment.models import EquipmentStatus
 from apps.maintenance.models import (
     CloseReason,
     ComplaintStatus,
-    FaultCategory,
     RemarkKind,
     WorkOrderOutcome,
     WorkOrderStatus,
@@ -66,13 +65,15 @@ def test_complete_requires_fault_category(equipment, engineer):
         complete_work_order(wo, engineer, fault_category="bogus")
 
 
-def test_complete_work_order_full_cascade(equipment, staff_user, engineer, engineer2):
+def test_complete_work_order_full_cascade(
+    equipment, staff_user, engineer, engineer2, fault
+):
     complaint = lodge_complaint(staff_user, equipment, "no power")
     wo = start_repair(open_work_order(equipment, engineer), engineer)
     wo = complete_work_order(
         wo,
         engineer2,
-        fault_category=FaultCategory.BATTERY_POWER,
+        fault_category=fault("accessory_probe"),
         participants=[engineer],
         remark="replaced battery pack",
     )
@@ -80,7 +81,7 @@ def test_complete_work_order_full_cascade(equipment, staff_user, engineer, engin
     complaint.refresh_from_db()
     assert wo.status == WorkOrderStatus.COMPLETED
     assert wo.outcome == WorkOrderOutcome.REPAIRED
-    assert wo.fault_category == FaultCategory.BATTERY_POWER
+    assert wo.fault_category == fault("accessory_probe")
     assert wo.repair_completed_at is not None
     assert wo.closed_by == engineer2
     assert set(wo.participants.all()) == {engineer, engineer2}
@@ -90,10 +91,10 @@ def test_complete_work_order_full_cascade(equipment, staff_user, engineer, engin
     assert wo.remarks.filter(text="replaced battery pack").exists()
 
 
-def test_cannot_complete_unstarted_work_order(equipment, engineer):
+def test_cannot_complete_unstarted_work_order(equipment, engineer, fault):
     wo = open_work_order(equipment, engineer)
     with pytest.raises(WorkOrderStateError):
-        complete_work_order(wo, engineer, fault_category=FaultCategory.OTHER)
+        complete_work_order(wo, engineer, fault_category=fault("other"))
 
 
 def test_cancel_from_in_progress_restores_working(equipment, staff_user, engineer):

@@ -121,9 +121,11 @@ class EquipmentDetailView(LoginRequiredMixin, DetailView):
         if self.request.user.is_engineer_or_admin:
             from apps.ai import services as ai_services
             from apps.ai.models import ServiceManual
+            from apps.maintenance.models import FaultCategory
 
             ctx["risk_assessment"] = ai_services.latest_assessment(eq)
             ctx["service_manual"] = ServiceManual.for_equipment(eq)
+            ctx["fault_categories"] = FaultCategory.objects.all()
         return ctx
 
 

@@ -76,8 +76,8 @@ class CloseComplaintForm(forms.Form):
 
 
 class CompleteWorkOrderForm(forms.Form):
-    fault_category = forms.ChoiceField(
-        choices=FaultCategory.choices,
+    fault_category = forms.ModelChoiceField(
+        queryset=FaultCategory.objects.all(),
         widget=forms.Select(attrs={"class": INPUT}),
     )
     participants = forms.ModelMultipleChoiceField(

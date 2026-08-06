@@ -18,7 +18,6 @@ from apps.maintenance.models import (
     CloseReason,
     Complaint,
     ComplaintStatus,
-    FaultCategory,
     FunctionalConfirmation,
     PPMSchedule,
     Remark,
@@ -81,18 +80,17 @@ def most_complained_devices(window_start, window_end, limit=10):
 
 
 def fault_category_counts(window_start, window_end):
-    labels = dict(FaultCategory.choices)
     rows = (
         WorkOrder.objects.filter(
             status=WorkOrderStatus.COMPLETED,
             repair_completed_at__range=(window_start, window_end),
             fault_category__isnull=False,
         )
-        .values("fault_category")
+        .values("fault_category__name")
         .annotate(n=Count("id"))
         .order_by("-n")
     )
-    return {labels[r["fault_category"]]: r["n"] for r in rows}
+    return {r["fault_category__name"]: r["n"] for r in rows}
 
 
 def repairs_completed_count(window_start, window_end):

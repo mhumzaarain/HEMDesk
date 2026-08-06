@@ -96,7 +96,7 @@
       {% elif wo.status == 'in_progress' %}<span class="badge-repair">{{ wo.get_status_display }}</span>
       {% else %}<span class="badge-info">{{ wo.get_status_display }}</span>{% endif %}
       {% if wo.outcome %}<span class="text-slate-500 dark:text-slate-400">{{ wo.get_outcome_display }}</span>{% endif %}
-      {% if wo.fault_category %}<span class="badge-muted">{{ wo.get_fault_category_display }}</span>{% endif %}
+      {% if wo.fault_category %}<span class="badge-muted">{{ wo.fault_category }}</span>{% endif %}
       <span class="ml-auto text-slate-500 dark:text-slate-400">opened {{ wo.opened_at|date }}</span>
     </div>
     {% empty %}<p class="text-sm text-slate-500 dark:text-slate-400">No repairs recorded.</p>{% endfor %}

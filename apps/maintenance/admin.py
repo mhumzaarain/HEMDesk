@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Complaint, PPMRecord, PPMSchedule, Remark, WorkOrder
+from .models import Complaint, FaultCategory, PPMRecord, PPMSchedule, Remark, WorkOrder
 
 
 @admin.register(Complaint)
@@ -69,6 +69,17 @@ class PPMScheduleAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+
+@admin.register(FaultCategory)
+class FaultCategoryAdmin(admin.ModelAdmin):
+    list_display = ("name", "slug", "description", "sort_order")
+    ordering = ("sort_order", "name")
+
+    def get_readonly_fields(self, request, obj=None):
+        # The slug is a stable internal code: editable when creating a
+        # category, frozen afterwards.
+        return ("slug",) if obj else ()
 
 
 @admin.register(PPMRecord)

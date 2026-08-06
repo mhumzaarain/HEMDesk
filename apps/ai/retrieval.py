@@ -104,7 +104,7 @@ def similar_repairs(
         equipment__model_number__iexact=equipment.model_number,
     )
     if fault_category:
-        base = base.filter(fault_category=fault_category)
+        base = base.filter(fault_category__slug=fault_category)
     if exclude_wo_id:
         base = base.exclude(pk=exclude_wo_id)
 
@@ -120,15 +120,14 @@ def similar_repairs(
     work_orders = (
         WorkOrder.objects.filter(id__in=ids)
         .order_by("-repair_completed_at")
+        .select_related("fault_category")
         .prefetch_related("complaints", "remarks")
     )
     return [
         {
             "wo_id": wo.id,
             "completed_at": wo.repair_completed_at,
-            "fault_category": wo.get_fault_category_display()
-            if wo.fault_category
-            else "",
+            "fault_category": wo.fault_category.name if wo.fault_category else "",
             "remarks": [r.text for r in wo.remarks.all()],
             "complaints": [c.description for c in wo.complaints.all()],
         }

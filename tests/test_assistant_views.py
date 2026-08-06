@@ -91,5 +91,5 @@ def test_panel_dropdown_covers_all_fault_categories(
     response = engineer_client.get(url)
     html = response.content.decode()
     assert 'name="fault_category"' in html
-    for value in FaultCategory.values:
+    for value in FaultCategory.objects.values_list("slug", flat=True):
         assert f'value="{value}"' in html

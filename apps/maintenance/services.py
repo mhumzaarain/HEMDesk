@@ -141,7 +141,7 @@ def complete_work_order(
     _require_engineer_or_admin(actor)
     if work_order.status != WorkOrderStatus.IN_PROGRESS:
         raise WorkOrderStateError("Only an in-progress work order can be completed.")
-    if fault_category not in FaultCategory.values:
+    if not isinstance(fault_category, FaultCategory) or fault_category.pk is None:
         raise ValueError("A valid fault_category is required to complete a repair.")
     now = timezone.now()
     work_order.status = WorkOrderStatus.COMPLETED
@@ -178,7 +178,10 @@ def complete_work_order(
             close_note=f"Resolved by Work Order #{work_order.pk}",
         )
     audit.record(
-        actor, "workorder.completed", work_order, {"fault_category": fault_category}
+        actor,
+        "workorder.completed",
+        work_order,
+        {"fault_category": fault_category.slug},
     )
     return work_order
 

@@ -3,10 +3,7 @@ from datetime import timedelta
 import pytest
 from django.utils import timezone
 
-from apps.maintenance.models import (
-    CloseReason,
-    FaultCategory,
-)
+from apps.maintenance.models import CloseReason
 from apps.maintenance.services import (
     add_remark,
     close_complaint,
@@ -28,35 +25,35 @@ def _backdate(obj, **fields):
     obj.refresh_from_db()
 
 
-def test_downtime_full_cycle_inside_window(make_equipment, staff_user, engineer):
+def test_downtime_full_cycle_inside_window(make_equipment, staff_user, engineer, fault):
     now = timezone.now()
     eq = make_equipment(serial_number="SN-MRI", name="MRI", is_critical_asset=True)
     complaint = lodge_complaint(staff_user, eq, "coil fault")
     _backdate(complaint, created_at=now - timedelta(days=10))
     wo = start_repair(open_work_order(eq, engineer), engineer)
-    wo = complete_work_order(wo, engineer, FaultCategory.ELECTRICAL)
+    wo = complete_work_order(wo, engineer, fault("electrical"))
     _backdate(wo, repair_completed_at=now - timedelta(days=8))
     result = metrics.critical_downtime_by_department(now - timedelta(days=30), now)
     assert result == {"ICU": pytest.approx(48.0, abs=0.1)}
 
 
-def test_downtime_clipped_to_window(make_equipment, staff_user, engineer):
+def test_downtime_clipped_to_window(make_equipment, staff_user, engineer, fault):
     now = timezone.now()
     eq = make_equipment(serial_number="SN-CT", is_critical_asset=True)
     complaint = lodge_complaint(staff_user, eq, "tube fault")
     _backdate(complaint, created_at=now - timedelta(days=40))
     wo = start_repair(open_work_order(eq, engineer), engineer)
-    wo = complete_work_order(wo, engineer, FaultCategory.OTHER)
+    wo = complete_work_order(wo, engineer, fault("other"))
     _backdate(wo, repair_completed_at=now - timedelta(days=29))
     result = metrics.critical_downtime_by_department(now - timedelta(days=30), now)
     assert result["ICU"] == pytest.approx(24.0, abs=0.1)
 
 
-def test_non_critical_equipment_excluded(equipment, staff_user, engineer):
+def test_non_critical_equipment_excluded(equipment, staff_user, engineer, fault):
     now = timezone.now()
     lodge_complaint(staff_user, equipment, "broken")  # equipment fixture: not critical
     wo = start_repair(open_work_order(equipment, engineer), engineer)
-    complete_work_order(wo, engineer, FaultCategory.OTHER)
+    complete_work_order(wo, engineer, fault("other"))
     assert (
         metrics.critical_downtime_by_department(
             now - timedelta(days=30), timezone.now()
@@ -65,12 +62,12 @@ def test_non_critical_equipment_excluded(equipment, staff_user, engineer):
     )
 
 
-def test_fault_categories_and_counts(equipment, engineer):
+def test_fault_categories_and_counts(equipment, engineer, fault):
     now = timezone.now()
     wo = start_repair(open_work_order(equipment, engineer), engineer)
-    complete_work_order(wo, engineer, FaultCategory.BATTERY_POWER)
+    complete_work_order(wo, engineer, fault("accessory_probe"))
     counts = metrics.fault_category_counts(now - timedelta(days=1), timezone.now())
-    assert counts == {"Battery / Power": 1}
+    assert counts == {"Accessory / Probe / Battery": 1}
     assert metrics.repairs_completed_count(now - timedelta(days=1), timezone.now()) == 1
 
 
@@ -84,8 +81,9 @@ def test_delayed_repairs_listed(equipment, engineer):
     assert "vendor part" in rows[0]["latest_delay_note"]
 
 
-def test_resolved_credits_all_participants(equipment, staff_user, engineer, engineer2):
-    from apps.maintenance.models import FaultCategory
+def test_resolved_credits_all_participants(
+    equipment, staff_user, engineer, engineer2, fault
+):
     from apps.maintenance.services import (
         complete_work_order,
         lodge_complaint,
@@ -97,7 +95,7 @@ def test_resolved_credits_all_participants(equipment, staff_user, engineer, engi
     lodge_complaint(staff_user, equipment, "no power")
     wo = start_repair(open_work_order(equipment, engineer), engineer)
     complete_work_order(
-        wo, engineer2, fault_category=FaultCategory.MECHANICAL, participants=[engineer]
+        wo, engineer2, fault_category=fault("mechanical"), participants=[engineer]
     )
     rows = {
         r["employee_id"]: r
@@ -123,8 +121,7 @@ def test_resolved_credits_closer_for_duplicate(equipment, staff_user, engineer):
     assert rows["EMP-100"]["resolved_count"] == 1
 
 
-def test_drilldown_lists_equipment_and_remarks(equipment, staff_user, engineer):
-    from apps.maintenance.models import FaultCategory
+def test_drilldown_lists_equipment_and_remarks(equipment, staff_user, engineer, fault):
     from apps.maintenance.services import (
         add_remark,
         complete_work_order,
@@ -137,7 +134,7 @@ def test_drilldown_lists_equipment_and_remarks(equipment, staff_user, engineer):
     lodge_complaint(staff_user, equipment, "no power")
     wo = start_repair(open_work_order(equipment, engineer), engineer)
     add_remark(wo, engineer, "ordered parts, installed, verified")
-    complete_work_order(wo, engineer, fault_category=FaultCategory.ELECTRICAL)
+    complete_work_order(wo, engineer, fault_category=fault("electrical"))
     rows = metrics.resolved_complaints_for_engineer(
         engineer, now - timedelta(days=1), timezone.now()
     )
@@ -166,8 +163,9 @@ def test_condemned_complaints_excluded_from_resolved(equipment, staff_user, engi
     )
 
 
-def test_recent_confirmations_lists_not_functional(equipment, staff_user, engineer):
-    from apps.maintenance.models import FaultCategory
+def test_recent_confirmations_lists_not_functional(
+    equipment, staff_user, engineer, fault
+):
     from apps.maintenance.services import (
         complete_work_order,
         confirm_complaint,
@@ -179,7 +177,7 @@ def test_recent_confirmations_lists_not_functional(equipment, staff_user, engine
     now = timezone.now()
     complaint = lodge_complaint(staff_user, equipment, "no power")
     wo = start_repair(open_work_order(equipment, engineer), engineer)
-    complete_work_order(wo, engineer, fault_category=FaultCategory.ELECTRICAL)
+    complete_work_order(wo, engineer, fault_category=fault("electrical"))
     complaint.refresh_from_db()
     confirm_complaint(complaint, staff_user, is_functional=False)
     rows = metrics.recent_confirmations(now - timedelta(days=1), timezone.now())

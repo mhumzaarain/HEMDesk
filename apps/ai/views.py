@@ -56,6 +56,8 @@ class ManualListView(RoleRequiredMixin, View):
 
 
 def _assistant_context(request, equipment_id):
+    from apps.maintenance.models import FaultCategory
+
     equipment = get_object_or_404(Equipment, pk=equipment_id)
     work_order = None
     wo_id = request.GET.get("wo")
@@ -65,6 +67,7 @@ def _assistant_context(request, equipment_id):
         "equipment": equipment,
         "work_order": work_order,
         "chat_messages": equipment.assistant_messages.select_related("user"),
+        "fault_categories": FaultCategory.objects.all(),
     }
 
 
@@ -91,7 +94,7 @@ class AssistantSendView(RoleRequiredMixin, View):
         from apps.maintenance.models import FaultCategory
 
         fault_category = request.POST.get("fault_category", "").strip()
-        if fault_category not in FaultCategory.values:
+        if not FaultCategory.objects.filter(slug=fault_category).exists():
             fault_category = ""
 
         if content:

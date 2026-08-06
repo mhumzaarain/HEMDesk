@@ -5,7 +5,6 @@ from apps.maintenance.models import (
     CloseReason,
     Complaint,
     ComplaintStatus,
-    FaultCategory,
     WorkOrderStatus,
 )
 from apps.maintenance.services import lodge_complaint, open_work_order, start_repair
@@ -79,7 +78,7 @@ def test_close_duplicate_via_view(client, engineer, staff_user, equipment):
 
 
 def test_open_start_complete_workorder_via_views(
-    client, engineer, staff_user, equipment
+    client, engineer, staff_user, equipment, fault
 ):
     complaint = lodge_complaint(staff_user, equipment, "won't switch on")
     client.force_login(engineer)
@@ -92,7 +91,7 @@ def test_open_start_complete_workorder_via_views(
     r = client.post(
         reverse("workorder_complete", args=[wo.pk]),
         {
-            "fault_category": FaultCategory.ELECTRICAL,
+            "fault_category": fault("electrical").pk,
             "participants": [],
             "remark": "fuse replaced",
         },
@@ -132,8 +131,8 @@ def test_home_shows_landing_page(client, staff_user):
     assert b"Browse equipment" in response.content
 
 
-def test_staff_confirms_via_view(client, staff_user, engineer, equipment):
-    from apps.maintenance.models import FaultCategory, FunctionalConfirmation
+def test_staff_confirms_via_view(client, staff_user, engineer, equipment, fault):
+    from apps.maintenance.models import FunctionalConfirmation
     from apps.maintenance.services import (
         complete_work_order,
         lodge_complaint,
@@ -143,7 +142,7 @@ def test_staff_confirms_via_view(client, staff_user, engineer, equipment):
 
     complaint = lodge_complaint(staff_user, equipment, "no power")
     wo = start_repair(open_work_order(equipment, engineer), engineer)
-    complete_work_order(wo, engineer, fault_category=FaultCategory.ELECTRICAL)
+    complete_work_order(wo, engineer, fault_category=fault("electrical"))
     client.force_login(staff_user)
     response = client.post(
         reverse("complaint_confirm", args=[complaint.pk]), {"functional": "yes"}
@@ -153,8 +152,9 @@ def test_staff_confirms_via_view(client, staff_user, engineer, equipment):
     assert complaint.functional_confirmation == FunctionalConfirmation.FUNCTIONAL
 
 
-def test_my_complaints_shows_confirm_prompt(client, staff_user, engineer, equipment):
-    from apps.maintenance.models import FaultCategory
+def test_my_complaints_shows_confirm_prompt(
+    client, staff_user, engineer, equipment, fault
+):
     from apps.maintenance.services import (
         complete_work_order,
         lodge_complaint,
@@ -164,16 +164,15 @@ def test_my_complaints_shows_confirm_prompt(client, staff_user, engineer, equipm
 
     lodge_complaint(staff_user, equipment, "no power")
     wo = start_repair(open_work_order(equipment, engineer), engineer)
-    complete_work_order(wo, engineer, fault_category=FaultCategory.ELECTRICAL)
+    complete_work_order(wo, engineer, fault_category=fault("electrical"))
     client.force_login(staff_user)
     response = client.get(reverse("my_complaints"))
     assert b"functional now" in response.content
 
 
-def test_other_staff_cannot_confirm(client, staff_user, engineer, equipment):
+def test_other_staff_cannot_confirm(client, staff_user, engineer, equipment, fault):
     from django.contrib.auth import get_user_model
 
-    from apps.maintenance.models import FaultCategory
     from apps.maintenance.services import (
         complete_work_order,
         lodge_complaint,
@@ -183,7 +182,7 @@ def test_other_staff_cannot_confirm(client, staff_user, engineer, equipment):
 
     complaint = lodge_complaint(staff_user, equipment, "no power")
     wo = start_repair(open_work_order(equipment, engineer), engineer)
-    complete_work_order(wo, engineer, fault_category=FaultCategory.ELECTRICAL)
+    complete_work_order(wo, engineer, fault_category=fault("electrical"))
     other = get_user_model().objects.create_user(
         username="nurse2", password="pw", employee_id="EMP-002", role="staff"
     )
@@ -204,8 +203,9 @@ def test_workorder_detail_forbidden_for_staff(client, staff_user, engineer, equi
     assert client.get(reverse("workorder_detail", args=[wo.pk])).status_code == 403
 
 
-def test_workorder_detail_shows_confirmation(client, engineer, staff_user, equipment):
-    from apps.maintenance.models import FaultCategory
+def test_workorder_detail_shows_confirmation(
+    client, engineer, staff_user, equipment, fault
+):
     from apps.maintenance.services import (
         complete_work_order,
         confirm_complaint,
@@ -216,7 +216,7 @@ def test_workorder_detail_shows_confirmation(client, engineer, staff_user, equip
 
     complaint = lodge_complaint(staff_user, equipment, "no power")
     wo = start_repair(open_work_order(equipment, engineer), engineer)
-    complete_work_order(wo, engineer, fault_category=FaultCategory.ELECTRICAL)
+    complete_work_order(wo, engineer, fault_category=fault("electrical"))
     complaint.refresh_from_db()
     confirm_complaint(complaint, staff_user, is_functional=False)
     client.force_login(engineer)

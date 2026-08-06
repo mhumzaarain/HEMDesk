@@ -228,7 +228,7 @@ class Command(BaseCommand):
             wo = complete_work_order(
                 wo,
                 engineer,
-                fault_category=random.choice(FaultCategory.values),
+                fault_category=random.choice(list(FaultCategory.objects.all())),
                 remark="Repaired and tested OK.",
             )
             done = started + timedelta(hours=repair_hours)

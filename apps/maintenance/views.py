@@ -172,6 +172,8 @@ def workorder_open(request, equipment_pk):
 
 @login_required
 def workorder_detail(request, pk):
+    from apps.maintenance.models import FaultCategory
+
     _require_engineer(request.user)
     wo = get_object_or_404(
         WorkOrder.objects.select_related(
@@ -190,6 +192,7 @@ def workorder_detail(request, pk):
             "accessory_events": wo.accessory_events.select_related(
                 "accessory_type", "actor"
             ),
+            "fault_categories": FaultCategory.objects.all(),
         },
     )
 

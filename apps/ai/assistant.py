@@ -91,9 +91,12 @@ def _history_block(equipment):
 
 
 def build_messages(equipment, work_order, question, fault_category=None):
-    category_label = (
-        FaultCategory(fault_category).label if fault_category else "all"
+    category = (
+        FaultCategory.objects.filter(slug=fault_category).first()
+        if fault_category
+        else None
     )
+    category_label = category.name if category else "all"
     exclude_wo_id = work_order.id if work_order else None
     repairs = _similar_repairs_block(
         equipment, question, fault_category, exclude_wo_id

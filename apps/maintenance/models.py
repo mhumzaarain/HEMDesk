@@ -33,15 +33,32 @@ class WorkOrderOutcome(models.TextChoices):
     CONDEMNED = "condemned", "Condemned"
 
 
-class FaultCategory(models.TextChoices):
-    ELECTRICAL = "electrical", "Electrical"
-    BATTERY_POWER = "battery_power", "Battery / Power"
-    DISPLAY_MONITOR = "display_monitor", "Display / Monitor"
-    MECHANICAL = "mechanical", "Mechanical"
-    CALIBRATION = "calibration", "Calibration"
-    SOFTWARE = "software", "Software"
-    ACCESSORY_PROBE = "accessory_probe", "Accessory / Probe"
-    OTHER = "other", "Other"
+class FaultCategory(models.Model):
+    """Editable by administrators in the admin site. Deleting one is blocked
+    while any work order points at it (see WorkOrder.fault_category)."""
+
+    name = models.CharField(max_length=60, unique=True)
+    slug = models.SlugField(
+        max_length=40,
+        unique=True,
+        help_text="Stable internal code. Set once when the category is created.",
+    )
+    description = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text="Shown to the engineer on the repair completion form.",
+    )
+    sort_order = models.PositiveSmallIntegerField(
+        default=100, help_text="Lower numbers appear first in the dropdown."
+    )
+
+    class Meta:
+        ordering = ["sort_order", "name"]
+        verbose_name = "fault category"
+        verbose_name_plural = "fault categories"
+
+    def __str__(self):
+        return self.name
 
 
 class RemarkKind(models.TextChoices):
@@ -84,11 +101,12 @@ class WorkOrder(NoDeleteModel):
     outcome = models.CharField(
         max_length=20, choices=WorkOrderOutcome.choices, null=True, blank=True
     )
-    fault_category = models.CharField(
-        max_length=30,
-        choices=FaultCategory.choices,
+    fault_category = models.ForeignKey(
+        "maintenance.FaultCategory",
         null=True,
         blank=True,
+        on_delete=models.PROTECT,
+        related_name="workorders",
         help_text="Required when completing a repair.",
     )
     participants = models.ManyToManyField(

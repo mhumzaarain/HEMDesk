@@ -3,7 +3,7 @@ from django.utils import timezone
 
 from apps.ai import manuals, retrieval
 from apps.ai.models import ServiceManual
-from apps.maintenance.models import Complaint, Remark, WorkOrderStatus
+from apps.maintenance.models import Complaint, FaultCategory, Remark, WorkOrderStatus
 
 
 @pytest.fixture
@@ -39,7 +39,8 @@ def test_similar_repairs_matches_same_model_history(
     sibling = make_equipment(serial_number="SN-2")  # same Hamilton C2 model
     wo = make_work_order(
         eq=sibling, status=WorkOrderStatus.COMPLETED,
-        repair_completed_at=timezone.now(), fault_category="electrical",
+        repair_completed_at=timezone.now(),
+        fault_category=FaultCategory.objects.get(slug="electrical"),
     )
     Complaint.objects.create(
         equipment=sibling, reporter=engineer, work_order=wo,
@@ -132,7 +133,8 @@ def _completed_wo(make_equipment, make_work_order, engineer, serial, description
     device = make_equipment(serial_number=serial, model_number=model_number)
     wo = make_work_order(
         eq=device, status=WorkOrderStatus.COMPLETED,
-        repair_completed_at=timezone.now(), fault_category=category,
+        repair_completed_at=timezone.now(),
+        fault_category=FaultCategory.objects.get(slug=category),
     )
     Complaint.objects.create(
         equipment=device, reporter=engineer, work_order=wo,
@@ -158,7 +160,7 @@ def test_fault_category_filters_candidates(
     match = _completed_wo(make_equipment, make_work_order, engineer,
                           "SN-C1", "screen issue", category="display_monitor")
     _completed_wo(make_equipment, make_work_order, engineer,
-                  "SN-C2", "power issue", category="battery_power")
+                  "SN-C2", "power issue", category="accessory_probe")
     rows = retrieval.similar_repairs(
         equipment, "anything", fault_category="display_monitor"
     )
