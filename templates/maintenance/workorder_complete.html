@@ -12,6 +12,12 @@
       {{ form.fault_category }}
       {% for error in form.fault_category.errors %}
         <p class="mt-1 text-sm text-red-700 dark:text-red-400">{{ error }}</p>{% endfor %}
+      <dl class="mt-2 space-y-0.5 text-xs text-slate-500 dark:text-slate-400">
+        {% for category in form.fault_category.field.queryset %}
+          <div><dt class="inline font-medium">{{ category.name }}</dt>
+          <dd class="inline">— {{ category.description }}</dd></div>
+        {% endfor %}
+      </dl>
     </div>
     <div>
       <label class="mb-1 block text-sm font-medium">Who worked on this repair?</label>

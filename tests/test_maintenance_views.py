@@ -222,3 +222,42 @@ def test_workorder_detail_shows_confirmation(
     client.force_login(engineer)
     response = client.get(reverse("workorder_detail", args=[wo.pk]))
     assert b"NOT functional" in response.content
+
+
+def test_completion_form_has_no_preselected_fault_category(client, equipment, engineer):
+    from apps.maintenance.services import open_work_order, start_repair
+
+    wo = start_repair(open_work_order(equipment, engineer), engineer)
+    client.force_login(engineer)
+    html = client.get(f"/maintenance/workorders/{wo.pk}/complete/").content.decode()
+
+    select = html.split('name="fault_category"')[1].split("</select>")[0]
+    assert "selected" not in select
+    assert "— Select a fault category —" in select
+
+
+def test_completion_form_rejects_a_missing_fault_category(client, equipment, engineer):
+    from apps.maintenance.models import WorkOrderStatus
+    from apps.maintenance.services import open_work_order, start_repair
+
+    wo = start_repair(open_work_order(equipment, engineer), engineer)
+    client.force_login(engineer)
+    response = client.post(
+        f"/maintenance/workorders/{wo.pk}/complete/",
+        {"fault_category": "", "remark": ""},
+    )
+
+    wo.refresh_from_db()
+    assert response.status_code == 200
+    assert wo.status == WorkOrderStatus.IN_PROGRESS
+    assert "Choose the fault category for this repair." in response.content.decode()
+
+
+def test_completion_form_shows_each_category_description(client, equipment, engineer):
+    from apps.maintenance.services import open_work_order, start_repair
+
+    wo = start_repair(open_work_order(equipment, engineer), engineer)
+    client.force_login(engineer)
+    html = client.get(f"/maintenance/workorders/{wo.pk}/complete/").content.decode()
+
+    assert "A circuit board or module was repaired or replaced" in html
