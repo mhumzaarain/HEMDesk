@@ -86,32 +86,13 @@ describe it in the remarks.
     migration, then a re-deploy. It is not something an admin can do from the
     app, so plan it with whoever maintains your installation.
 
-## Groups and permissions — you can ignore these
+## Who can do what
 
-The admin site shows a **Groups** section, and each user's page has **Groups**
-and **User permissions** boxes. These come as standard with Django, the
-framework HEMDesk is built on, and they cannot be hidden.
-
-**HEMDesk itself ignores them completely.** Everything you see in the app —
-the sidebar links, the queue, the dashboard, who may close a work order — is
-decided by one field, the person's **Role**. Groups and permissions are never
-consulted anywhere in HEMDesk.
-
-They are not entirely inert, though, and it is worth knowing the difference:
-
-- **Inside the app** (equipment, complaints, work orders, dashboard, reports):
-  groups and permissions do **nothing**. Only **Role** matters.
-- **Inside the admin site only**: they work the way Django intends, and can
-  narrow which sections of `/admin/` a non-superuser may open.
-
-For a hospital running HEMDesk normally, you never need them. Leave both boxes
-empty and set the person's Role instead.
-
-!!! warning
-    Never try to give someone access to part of the app by putting them in a
-    group. It will look like you did something and will have no effect. If a
-    person sees too much or too little of HEMDesk, change their **Role** — see
-    [Managing user accounts](user-accounts.md).
+Everything a person sees and can do in HEMDesk comes from one setting: their
+**Role**, which is Staff, Biomedical Engineer, or Admin. There is nothing else
+to configure — no permission lists to tick, nothing to assign. If someone is
+seeing too much or too little of the app, change their Role and nothing else.
+See [Managing user accounts](user-accounts.md).
 
 ### Two settings that look alike but are not
 

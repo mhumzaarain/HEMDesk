@@ -82,8 +82,8 @@ Yes. Admin is just a role, not a single reserved account. Any existing admin can
 
 ## What else lives in the admin site
 
-Beyond users, the admin site is where you create **departments**, and it gives raw access to equipment, accessories, complaints, work orders, and PPM records. It also shows a **Groups** section that HEMDesk does not use at all — a person's access comes from their **Role**, never from a group.
+Beyond users, the admin site is where you create **departments**, and it gives raw access to equipment, accessories, complaints, work orders, and PPM records.
 
-[Departments & reference data](reference-data.md) covers all of that: creating departments, why fault categories can't be added, why groups do nothing, and exactly which records you can and can't edit.
+[Departments & reference data](reference-data.md) covers all of that: creating departments, why fault categories can't be added, and exactly which records you can and can't edit.
 
 **What happens next:** The new user logs in with the credentials you gave them, lands on the home screen for their role, and changes their password from the sidebar footer.
