@@ -17,7 +17,7 @@ User accounts are managed in the Django admin site. Open it from the **Admin** l
 5. Give the person their username and initial password, and ask them to change it after their first login (**Change password** in the sidebar footer).
 
 !!! note
-    The **Role** field controls what the person sees *inside the app*. Access to the admin site itself is separate: it comes from Django's **Staff status** checkbox (under Permissions on the user's edit page). Tick it only for people who should manage users and other records — a superuser has it automatically.
+    Setting the **Role** is the whole job — there is no second setting to remember. It controls what the person sees *inside the app*, and it also controls whether they can open the admin site: the **Can open the admin site (administrators only)** checkbox (under Permissions on the user's edit page) is set automatically from Role and can't be edited by hand. Role **Admin** grants it; Staff and Biomedical Engineer do not, so the two settings can never disagree.
 
 ## Changing a role or details later
 
@@ -78,12 +78,12 @@ Every other account — staff, engineers, and further admins alike — is then c
 
 ## Can there be more than one admin?
 
-Yes. Admin is just a role, not a single reserved account. Any existing admin can create more admins: register the user as usual and set their **Role** to Admin, and tick **Staff status** if they should also manage accounts in the admin site. Having at least two admins is a good idea — if one is unavailable or locked out, the other can still reset passwords and manage accounts.
+Yes. Admin is just a role, not a single reserved account. Any existing admin can create more admins: register the user as usual and set their **Role** to Admin — that alone gives them access to the admin site too. Having at least two admins is a good idea — if one is unavailable or locked out, the other can still reset passwords and manage accounts.
 
 ## What else lives in the admin site
 
 Beyond users, the admin site is where you create **departments**, and it gives raw access to equipment, accessories, complaints, work orders, and PPM records.
 
-[Departments & reference data](reference-data.md) covers all of that: creating departments, why fault categories can't be added, and exactly which records you can and can't edit.
+[Departments & reference data](reference-data.md) covers all of that: creating departments, adding and editing fault categories, and exactly which records you can and can't edit.
 
 **What happens next:** The new user logs in with the credentials you gave them, lands on the home screen for their role, and changes their password from the sidebar footer.

@@ -15,7 +15,7 @@ A work order moves through **Open → In Progress → Completed** (outcome Repai
 
     Remarks are append-only — once added, they can't be edited or removed.
 5. When the repair is done, click **Complete…** and fill in:
-    - **Fault category** (required) — Electrical, Battery / Power, Display / Monitor, Mechanical, Calibration, Software, Accessory / Probe, or Other. This list is fixed and the same in every installation; nobody, including admins, can add to it — use **Other** and explain in a remark if nothing fits. See [Departments & reference data](../admin/reference-data.md#fault-categories-are-a-fixed-list).
+    - **Fault category** (required) — the dropdown opens with nothing selected; pick the one that best describes the fault. Each category's description is listed under the dropdown to help you choose. Use **Other** and explain in a remark if nothing fits. See [Fault categories](../admin/reference-data.md#fault-categories).
     - Tick every engineer who worked on the repair.
     - An optional closing remark.
     - Click **Mark repaired & return to service**.

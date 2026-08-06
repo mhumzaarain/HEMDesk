@@ -18,7 +18,7 @@ normal day-to-day work.
 | **User accounts** | Admin | Admin site — see [Managing user accounts](user-accounts.md) |
 | **Equipment** | Engineers & Admins | In the app: [Register equipment](../equipment/register.md) |
 | **Accessory types** | Engineers & Admins | In the app: [Accessories & stock](../equipment/accessories.md) |
-| **Fault categories** | Nobody — built in | Fixed list, see below |
+| **Fault categories** | Admin | Admin site — see below |
 | **Roles** | Nobody — built in | Fixed list: Staff, Biomedical Engineer, Admin |
 
 So a realistic first-day setup is: create your departments, then create your
@@ -32,8 +32,7 @@ create these before registering equipment.
 
 1. Open the admin site from the **Admin** link at the bottom of the sidebar
    (it takes you to `/admin/`). No link there? See
-   [Two settings that look alike](#two-settings-that-look-alike-but-are-not) —
-   you need Staff status, not just the Admin role.
+   [Who can do what](#who-can-do-what) — you need the Admin role.
 2. Under **Equipment**, next to **Departments**, click **Add**.
 3. Fill in:
     - **Name** — what people call it, e.g. `ICU`. This is what appears in
@@ -62,14 +61,7 @@ department, HEMDesk **refuses to delete it** and shows a protected-object
 error. This is deliberate: it stops a device from silently losing its location.
 To retire a department, first move its equipment elsewhere, then delete it.
 
-## Fault categories are a fixed list
-
-**You cannot create, rename, or remove fault categories.** They are not stored
-in the database and there is nothing for them in the admin site. HEMDesk ships
-with these eight, and every installation has exactly the same ones:
-
-Electrical · Battery / Power · Display / Monitor · Mechanical · Calibration ·
-Software · Accessory / Probe · Other
+## Fault categories
 
 Nobody picks a category when *lodging* a complaint. It is chosen by the
 **engineer**, at the end of the job, on the form that completes a work order —
@@ -77,14 +69,49 @@ see [Work orders](../complaints/work-orders.md). The category is what drives the
 fault breakdown on the dashboard and in the monthly report, and it helps the AI
 assistant find similar past repairs.
 
+HEMDesk ships with these eight, listed here in the order they appear in the
+engineer's dropdown:
+
+| Name | Description |
+| --- | --- |
+| Electrical | Mains supply, power supply unit, wiring, fuses or switches failed |
+| Electronic boards | A circuit board or module was repaired or replaced |
+| Display / Monitor | Screen, touch panel or display output failed |
+| Mechanical | A moving or structural part was damaged, repaired or replaced |
+| Calibration | Calibration or adjustment was needed |
+| Software | Firmware or software error, crash, freeze or update required |
+| Accessory / Probe / Battery | A probe, sensor, cable, battery or charging circuit failed, not the main unit |
+| Other | Anything not covered above — explain in the remark |
+
 If a fault doesn't fit any of the eight, engineers should use **Other** and
 describe it in the remarks.
 
-!!! note
-    Genuinely need a ninth category? That is a change to the software, not a
-    setting — it needs a developer to edit the code and apply a database
-    migration, then a re-deploy. It is not something an admin can do from the
-    app, so plan it with whoever maintains your installation.
+### Adding a fault category
+
+1. Open the admin site, and under **Maintenance**, next to **Fault
+   categories**, click **Add**.
+2. Fill in:
+    - **Name** — what engineers see in the dropdown.
+    - **Description** — one line saying plainly what kind of fault belongs
+      here. This is what the engineer reads under the dropdown on the repair
+      completion form.
+    - **Sort order** — a number that decides where the category sits in the
+      dropdown; lower numbers appear first.
+3. Click **Save**.
+
+The internal code is set once, when you save the category, and cannot be
+changed afterwards — so it doesn't matter which name you give it later.
+
+### Renaming or removing a fault category
+
+Open **Maintenance → Fault categories**, click the one you want, and edit its
+**Name**, **Description**, or **Sort order**. Renaming is safe: the new name
+appears immediately on every repair already recorded against it, including in
+the dashboard's fault chart.
+
+Deleting only works while no repair has used the category yet. Once a repair
+has used it, HEMDesk refuses to delete it and names the work orders holding
+it — rename it instead of trying to delete a used category.
 
 ## Who can do what
 
@@ -92,22 +119,10 @@ Everything a person sees and can do in HEMDesk comes from one setting: their
 **Role**, which is Staff, Biomedical Engineer, or Admin. There is nothing else
 to configure — no permission lists to tick, nothing to assign. If someone is
 seeing too much or too little of the app, change their Role and nothing else.
-See [Managing user accounts](user-accounts.md).
 
-### Two settings that look alike but are not
-
-These trip people up, so it is worth stating plainly:
-
-- **Role** decides what the person sees **inside HEMDesk**.
-- **Staff status** is a single tick-box that decides whether they can open the
-  **admin site** at all. It is also what makes the **Admin** link appear at the
-  bottom of their sidebar.
-
-They are independent. Someone whose Role is Admin but who does *not* have Staff
-status gets the full app but no Admin link and no way into `/admin/`. Someone
-with Staff status but the Staff role can open `/admin/` while still being
-blocked from the dashboard and equipment screens. An admin who should manage
-accounts and departments needs **both**.
+Role **Admin** also grants access to the admin site itself, and is what makes
+the **Admin** link appear at the bottom of the sidebar; Staff and Biomedical
+Engineer do not get either. See [Managing user accounts](user-accounts.md).
 
 ## What you can and can't change in the admin site
 
@@ -120,6 +135,7 @@ people using the app properly, which keeps the history trustworthy.
 | --- | --- | --- |
 | Departments | Add, edit, delete | — |
 | Users | Add, edit, delete | — |
+| Fault categories | Add, edit, delete | — |
 | Equipment | Add, edit | Delete (condemn it in the app instead) |
 | Accessory types | Add, edit | Delete |
 | Service manuals | Add, edit, delete | — |
@@ -143,16 +159,17 @@ people using the app properly, which keeps the history trustworthy.
     no error to tell you. Always upload manuals from the app's own
     [Manuals page](../ai/manuals.md), which does start that step.
 
-In fact only three things can ever be deleted here: departments, users, and
-service manuals. Everything that forms part of the maintenance history —
-equipment, complaints, work orders, remarks, PPM records, the audit log — is
-permanent by design, and the app refuses to remove it however you try. If a
-device should leave daily use, condemn it in the app rather than looking for a
-delete button.
+In fact only four things can ever be deleted here: departments, users, fault
+categories, and service manuals. Everything that forms part of the maintenance
+history — equipment, complaints, work orders, remarks, PPM records, the audit
+log — is permanent by design, and the app refuses to remove it however you
+try. If a device should leave daily use, condemn it in the app rather than
+looking for a delete button.
 
-Even those three can refuse. A department or user that still has equipment,
-complaints, or work orders attached cannot be deleted, so that nothing is left
-pointing at a record that no longer exists.
+Even those four can refuse. A department or user that still has equipment,
+complaints, or work orders attached cannot be deleted, and a fault category
+that a repair has already used cannot be deleted either, so that nothing is
+left pointing at a record that no longer exists.
 
 **What happens next:** With your departments created, engineers can register
 equipment against them, staff can lodge complaints, and the department filters
