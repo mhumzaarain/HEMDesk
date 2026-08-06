@@ -338,29 +338,19 @@ class Command(BaseCommand):
                     remark="Worn out; replaced from backup stock.",
                 )
                 replaced += 1
-                backdate(
-                    Accessory, accessory.pk, condemned_at=wo.repair_completed_at
-                )
+                backdate(Accessory, accessory.pk, condemned_at=wo.repair_completed_at)
             elif repaired < 3:
-                update_accessory(
-                    accessory, engineer, status=AccessoryStatus.FAULTY
-                )
+                update_accessory(accessory, engineer, status=AccessoryStatus.FAULTY)
                 event = repair_accessory(
                     accessory, engineer, wo, remark="Connector re-soldered."
                 )
                 repaired += 1
-            WorkOrder.objects.filter(pk=wo.pk).update(
-                status=WorkOrderStatus.COMPLETED
-            )
+            WorkOrder.objects.filter(pk=wo.pk).update(status=WorkOrderStatus.COMPLETED)
             if event is not None:
-                backdate(
-                    AccessoryEvent, event.pk, created_at=wo.repair_completed_at
-                )
+                backdate(AccessoryEvent, event.pk, created_at=wo.repair_completed_at)
 
         # make the restock strip visible out of the box: one type at zero
-        low_type = (
-            AccessoryType.objects.filter(stock_qty__gt=0).order_by("id").first()
-        )
+        low_type = AccessoryType.objects.filter(stock_qty__gt=0).order_by("id").first()
         if low_type is not None:
             adjust_stock(
                 low_type, admin, -low_type.stock_qty, "Issued to wards as spares"

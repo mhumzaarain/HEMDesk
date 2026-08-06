@@ -246,9 +246,7 @@ def month_metrics(month):
 
     start = tz.make_aware(datetime(month.year, month.month, 1))
     last_day = calendar.monthrange(month.year, month.month)[1]
-    end = tz.make_aware(datetime(month.year, month.month, last_day)) + timedelta(
-        days=1
-    )
+    end = tz.make_aware(datetime(month.year, month.month, last_day)) + timedelta(days=1)
     downtime = critical_downtime_by_department(start, end)
     return {
         "month": f"{month:%Y-%m}",
@@ -325,8 +323,7 @@ def accessory_replacements_by_type(window_start, window_end, limit=5):
     return [
         {
             "label": (
-                f"{r['accessory_type__name']} — "
-                f"{r['accessory_type__equipment_name']}"
+                f"{r['accessory_type__name']} — {r['accessory_type__equipment_name']}"
             ),
             "n": r["n"],
         }

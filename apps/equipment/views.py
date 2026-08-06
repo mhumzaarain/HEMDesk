@@ -114,9 +114,7 @@ class EquipmentDetailView(LoginRequiredMixin, DetailView):
         schedule = getattr(eq, "ppm_schedule", None)
         ctx["ppm_schedule"] = schedule
         ctx["ppm_records"] = (
-            schedule.records.select_related("work_order").prefetch_related(
-                "engineers"
-            )
+            schedule.records.select_related("work_order").prefetch_related("engineers")
             if schedule
             else []
         )
@@ -453,8 +451,7 @@ class AccessoryEditView(RoleRequiredMixin, View):
                 "form": form,
                 "form_title": f"Edit {accessory.type.name}",
                 "form_subtitle": (
-                    f"On {accessory.equipment.name} "
-                    f"{accessory.equipment.serial_number}"
+                    f"On {accessory.equipment.name} {accessory.equipment.serial_number}"
                 ),
                 "cancel_url": reverse(
                     "equipment_detail", args=[accessory.equipment_id]
@@ -589,8 +586,7 @@ class AccessoryReplaceView(RoleRequiredMixin, View):
                 "form": form,
                 "form_title": f"Replace {accessory.type.name}",
                 "form_subtitle": (
-                    f"WO #{work_order.pk} · in store: "
-                    f"{accessory.type.stock_qty}"
+                    f"WO #{work_order.pk} · in store: {accessory.type.stock_qty}"
                 ),
                 "cancel_url": reverse("workorder_detail", args=[work_order.pk]),
             },

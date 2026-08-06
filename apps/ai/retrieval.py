@@ -52,8 +52,9 @@ def _vector_sections(manual, query_text, k):
         logger.warning("embedding backend unavailable, using FTS only: %s", exc)
         return None
     return list(
-        manual.chunks.exclude(embedding__isnull=True)
-        .order_by(CosineDistance("embedding", query_vector))[:k]
+        manual.chunks.exclude(embedding__isnull=True).order_by(
+            CosineDistance("embedding", query_vector)
+        )[:k]
     )
 
 
