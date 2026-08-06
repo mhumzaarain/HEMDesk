@@ -23,7 +23,10 @@ class CustomUserAdmin(UserAdmin):
     add_fieldsets = (
         (
             None,
-            {"classes": ("wide",), "fields": ("username", "password1", "password2")},
+            {
+                "classes": ("wide",),
+                "fields": ("username", "usable_password", "password1", "password2"),
+            },
         ),
         ("CMMS", {"fields": ("employee_id", "role")}),
     )

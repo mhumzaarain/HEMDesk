@@ -118,6 +118,9 @@ def test_user_admin_form_offers_no_groups_or_permissions(client, django_user_mod
     client.force_login(boss)
     html = client.get(f"/admin/accounts/user/{boss.pk}/change/").content.decode()
 
+    assert 'name="email"' in html
+    assert 'name="is_staff"' in html
+    assert 'name="employee_id"' in html
     assert 'name="groups"' not in html
     assert 'name="user_permissions"' not in html
 
@@ -130,3 +133,17 @@ def test_admin_index_has_no_groups_section(client, django_user_model):
     html = client.get("/admin/").content.decode()
 
     assert "/admin/auth/group/" not in html
+
+
+def test_user_admin_add_form_offers_usable_password_toggle(client, django_user_model):
+    boss = django_user_model.objects.create_superuser(
+        username="root3", password="pw", employee_id="EMP-997"
+    )
+    client.force_login(boss)
+    html = client.get("/admin/accounts/user/add/").content.decode()
+
+    assert 'name="usable_password"' in html
+    assert 'name="password1"' in html
+    assert 'name="password2"' in html
+    assert 'name="employee_id"' in html
+    assert 'name="groups"' not in html
