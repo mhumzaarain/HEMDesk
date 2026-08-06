@@ -43,14 +43,24 @@ Procrastinate (Postgres task queue) · uv for dependency management.
 
 See the [setup guide](https://mhumzaarain.github.io/HEMDesk/developer/setup/) for prerequisites and contributing details.
 
+Terminal 1 — start the app and leave it running:
+
 ```bash
 uv sync                          # create .venv and install deps (incl. dev)
 uv run cli.py init-workspace     # creates .env with generated secrets
 uv run cli.py compose-up         # db, ollama, hot-reloading app on :8000
 ```
 
-`init-workspace` generates real random secrets, including `DEMO_PASSWORD` —
-it's no longer the fixed `demo1234` unless you set it yourself in `.env`
+Terminal 2 — create the accounts (the stack starts with none, so this is
+required before anyone can log in):
+
+```bash
+uv run cli.py manage seed_demo
+```
+
+Then open <http://127.0.0.1:8000> and log in as **`admin`**. **The password is
+the `DEMO_PASSWORD` line in your `.env` file** — `init-workspace` generates a
+random one. Want a password you pick yourself? Edit `DEMO_PASSWORD` in `.env`
 before running `seed_demo`.
 
 Running Django directly on the host against a Dockerized Postgres is also
@@ -90,7 +100,10 @@ embedding endpoint. The default bundled Ollama runs locally, so nothing
 leaves your deployment — but if you point `LLM_BASE_URL` or
 `EMBEDDING_BASE_URL` at an external endpoint, all of that is sent there.
 
-## Demo accounts & login
+## Demo accounts & login (development only)
+
+Accounts come from `uv run cli.py manage seed_demo`, which you run once
+against a fresh database. Nothing creates them automatically.
 
 **All demo accounts share one password**, read from `DEMO_PASSWORD` in
 `.env` when `seed_demo` runs. `cli.py init-workspace` generates a random one
@@ -123,13 +136,25 @@ Demo accounts (`seed_demo` / `DEMO_PASSWORD`) are throwaway fixtures. Real
 accounts are **never** stored in `.env` — they live in the database (passwords
 hashed) and are created inside the app.
 
-1. **Create the first admin** (one time), either:
-   - Interactive (standard): `python manage.py createsuperuser` — prompts for
-     the credentials; nothing is written to a file.
-   - Automated/container: set `SUPERUSER_*` in your private `.env` (see
-     `.env.example`) and run `python manage.py create_superuser`. It is
-     idempotent — safe to run on every deploy; it skips if a superuser already
-     exists or the variables are unset. Use `--force` to reset the password.
+A fresh deployment has no accounts at all, so nobody can log in until you
+create the first administrator. Edit these lines in `.env` — replacing the
+placeholder password, which is public — then deploy and create the account:
+
+```bash
+SUPERUSER_USERNAME=admin
+SUPERUSER_PASSWORD=changeme-in-production   # <-- put a real password here
+```
+
+```bash
+uv run cli.py stack-deploy              # so Swarm picks up the new .env values
+uv run cli.py manage create_superuser
+```
+
+Those two values are now your login, with the Admin role already set.
+`create_superuser` is safe to re-run — it skips if the account already exists;
+`--force` resets the password. To type the password instead of storing it, run
+`uv run cli.py manage createsuperuser` (Django's interactive version), then set
+that user's Role to Admin in `/admin/`.
 2. **Create every other user** via the Django admin at `/admin/` — set each
    person's username, role, employee ID, and an initial password.
 3. **Each user changes their own password** at `/accounts/password_change/`

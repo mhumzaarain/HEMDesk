@@ -71,6 +71,7 @@ nav:
       - Asking the assistant: ai/assistant.md
   - Administration:
       - Managing user accounts: admin/user-accounts.md
+      - Departments & reference data: admin/reference-data.md
   - Developer:
       - Architecture overview: developer/architecture.md
       - Data model: developer/data-model.md
