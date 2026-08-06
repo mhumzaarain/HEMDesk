@@ -63,14 +63,14 @@ To retire a department, first move its equipment elsewhere, then delete it.
 
 ## Fault categories
 
-Nobody picks a category when *lodging* a complaint. It is chosen by the
-**engineer**, at the end of the job, on the form that completes a work order —
-see [Work orders](../complaints/work-orders.md). The category is what drives the
-fault breakdown on the dashboard and in the monthly report, and it helps the AI
+Nobody picks a category when *lodging* a complaint. The **engineer** picks it,
+at the end of the job. They pick it on the form that completes a work order —
+see [Work orders](../complaints/work-orders.md). The category drives the fault
+breakdown on the dashboard and in the monthly report. It also helps the AI
 assistant find similar past repairs.
 
-HEMDesk ships with these eight, listed here in the order they appear in the
-engineer's dropdown:
+HEMDesk ships with these eight. They are listed here in the order they appear
+in the engineer's dropdown.
 
 | Name | Description |
 | --- | --- |
@@ -83,73 +83,105 @@ engineer's dropdown:
 | Accessory / Probe / Battery | A probe, sensor, cable, battery or charging circuit failed, not the main unit |
 | Other | Anything not covered above — explain in the remark |
 
-If a fault doesn't fit any of the eight, engineers should use **Other** and
-describe it in the remarks.
+Some faults fit none of the eight. Engineers should choose **Other** for those.
+They should then describe the fault in the remarks.
+
+### The Slug box
+
+The form for a fault category has a box labelled **Slug**. Read this before you
+add your first category. It is the only part of the form that needs explaining.
+
+A slug is a short internal code. It is written in small letters, numbers and
+hyphens — for example `water-ingress`. HEMDesk uses this code to remember which
+category a repair was given. Every completed repair points at the code. It does
+not point at the words you typed.
+
+**You normally leave the box empty.** When you click **Save**, HEMDesk works
+the code out from the name. It makes the name small and turns each space into a
+hyphen. So `Water ingress` becomes `water-ingress`.
+
+Three of the eight categories HEMDesk ships with have an underscore in their
+code: `electronic_boards`, `display_monitor` and `accessory_probe`. The other
+five are single words. An underscore and a hyphen work the same way here, so
+the difference does not matter.
+
+**The code is set once and never changes.** It is set the first time you save
+the category. If you open the category again later, the code is still shown,
+but as plain text you cannot type in. This is what makes renaming a category
+safe. The repairs point at the code, and the code stays put, so a rename cannot
+break the link to them.
+
+You never need the code anywhere else. Engineers, the dashboard and the reports
+all show the name. The code is only ever seen here in the admin site.
 
 ### Adding a fault category
 
-1. Open the admin site, and under **Maintenance**, next to **Fault
-   categories**, click **Add**.
-2. Fill in:
-    - **Name** — what engineers see in the dropdown.
-    - **Description** — one line saying plainly what kind of fault belongs
-      here. This is what the engineer reads under the dropdown on the repair
-      completion form.
-    - **Sort order** — a number that decides where the category sits in the
-      dropdown; lower numbers appear first.
-3. Click **Save**.
+1. Open the admin site from the **Admin** link at the bottom of the sidebar.
+2. Under **Maintenance**, next to **Fault categories**, click **Add**. A form
+   opens with four boxes: **Name**, **Slug**, **Description** and **Sort
+   order**.
+3. In **Name**, type what engineers will see in the dropdown, e.g.
+   `Water ingress`.
+4. Leave **Slug** empty. HEMDesk fills it in for you when you save.
+5. In **Description**, type one line saying plainly what kind of fault belongs
+   here. The engineer reads this line under the dropdown on the repair
+   completion form.
+6. In **Sort order**, type a number. The number decides where the category
+   sits in the engineer's dropdown. Lower numbers appear first. The eight
+   categories HEMDesk ships with are numbered 10, 20, 30 and so on up to 80, so
+   pick a number that puts yours where you want it.
+7. Click **Save**.
 
-There is a fourth box on the form, **Slug**. Leave it empty — the next section
-explains what it is, and the one occasion when HEMDesk will ask you to fill it
-in yourself.
+You are taken back to the list of fault categories. A message at the top
+confirms the category was added. Your new category is in the list, in the place
+its sort order gives it. Engineers can choose it straight away. Nothing needs
+restarting.
 
-### The internal code
+Sometimes HEMDesk will not accept the category. The form comes back instead,
+with everything you typed still in it, and a message in red saying what is
+wrong. Nothing has been created at that point. The next section covers both
+reasons this happens.
 
-Alongside the name you type, each category carries a short **internal code** —
-the **Slug** box on the form. It is a plain-text version of the name, in small
-letters with no spaces or punctuation: `Water ingress` becomes `water-ingress`.
-The eight categories HEMDesk ships with use an underscore where you might
-expect a hyphen — `electronic_boards`, `display_monitor`, `accessory_probe` —
-which is why the list looks slightly inconsistent; both forms work the same
-way. HEMDesk works the code out from the name when you save, so in normal use
-you leave the box empty and never touch it.
+### When HEMDesk will not accept a new category
 
-The code is how HEMDesk remembers, behind the scenes, which category a repair
-was given. Every completed repair points at the code rather than at the words
-you typed. **The code is set once, when the category is first saved, and never
-changes afterwards** — that is exactly what makes renaming a category safe, and
-why a rename shows up on every repair already recorded against it.
+Two things can go wrong when HEMDesk works the code out from your name. It
+tells you about each one on the form.
 
-Two things can go wrong when the code is being worked out, and HEMDesk tells
-you about both on the form rather than letting them through.
+**The name gives a code that another category already uses.** Capitals and
+punctuation are ignored when the code is worked out. So `battery`, `Battery`
+and `Battery!` all give the same code: `battery`. Two categories cannot share a
+code. So if a category called `Battery` already exists, typing `battery` or
+`Battery!` is refused.
 
-**Two categories cannot share a code.** Because the code ignores capitals and
-punctuation, `battery`, `Battery` and `Battery!` all reduce to the same code,
-`battery`. If you try to add a category whose name differs from an existing one
-only in that way, HEMDesk refuses to save it and shows a message under **Name**
-naming the category already using that code. Nothing is created. The remedy is
-to pick a genuinely different name — `Battery / charging` rather than
-`battery` — not to work around it.
+*What you will see:* the form comes back, with a message under **Name**. The
+message tells you which category already uses that code.
 
-**Some names produce no code at all.** A name written in a script that has no
-plain-text equivalent — Urdu, Arabic, Chinese — or one made only of punctuation
-leaves nothing for HEMDesk to build a code from. When that happens you get a
-message under **Slug** asking you to type a code yourself. Put a short
-description of the category in that box, in small letters, using only letters,
-numbers and hyphens — for example `water-ingress` — and save again. The name
-stays exactly as you wrote it, and the name is what engineers, the dashboard
-and the reports show — the code is only ever seen here in the admin site.
+*What to do:* choose a properly different name. For example, type
+`Battery / charging` instead of `battery`. Then click **Save** again.
+
+**The name gives no code at all.** Some names leave nothing for HEMDesk to
+build a code from. A name written in a script such as Urdu or Arabic is one
+case. A name made only of punctuation is another.
+
+*What you will see:* the form comes back, with a message under **Slug**. The
+message asks you to type a code yourself.
+
+*What to do:* type a code into the **Slug** box. Use small letters, numbers and
+hyphens only — for example `water-ingress`. Then click **Save** again. Your
+name is kept exactly as you typed it. Only the code is different.
 
 ### Renaming or removing a fault category
 
-Open **Maintenance → Fault categories**, click the one you want, and edit its
-**Name**, **Description**, or **Sort order**. Renaming is safe: the new name
-appears immediately on every repair already recorded against it, including in
-the dashboard's fault chart.
+Open **Maintenance → Fault categories**. Click the category you want. You can
+edit its **Name**, **Description** and **Sort order**. Then click **Save**.
 
-Deleting only works while no repair has used the category yet. Once a repair
-has used it, HEMDesk refuses to delete it and names the work orders holding
-it — rename it instead of trying to delete a used category.
+Renaming is safe. The new name appears straight away on every repair already
+recorded against that category. It appears in the dashboard's fault chart too.
+
+Deleting is different. You can only delete a category while no repair has used
+it. Once a repair has used it, HEMDesk refuses to delete it. It shows you an
+error page listing the work orders that hold the category. If you no longer
+want a category that repairs have used, rename it. Do not try to delete it.
 
 ## Who can do what
 
