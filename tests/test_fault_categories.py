@@ -80,6 +80,28 @@ def test_completing_without_a_category_is_rejected(equipment, engineer):
         complete_work_order(wo, engineer, fault_category=None)
 
 
+def test_admin_can_add_a_category_with_the_documented_fields(client, django_user_model):
+    """docs/admin/reference-data.md tells administrators to fill in Name,
+    Description and Sort order only — the internal code is derived."""
+    boss = django_user_model.objects.create_superuser(
+        username="root-fc", password="pw", employee_id="EMP-FC1"
+    )
+    client.force_login(boss)
+
+    response = client.post(
+        "/admin/maintenance/faultcategory/add/",
+        {
+            "name": "Water Ingress",
+            "description": "Fluid spilled into the enclosure.",
+            "sort_order": "150",
+        },
+    )
+
+    assert response.status_code == 302, response.content.decode()
+    category = FaultCategory.objects.get(name="Water Ingress")
+    assert category.slug == "water-ingress"
+
+
 def test_the_audit_entry_records_the_slug_not_the_name(equipment, engineer, fault):
     from apps.core.models import AuditLog
 

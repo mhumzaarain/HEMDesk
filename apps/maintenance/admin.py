@@ -76,6 +76,12 @@ class FaultCategoryAdmin(admin.ModelAdmin):
     list_display = ("name", "slug", "description", "sort_order")
     ordering = ("sort_order", "name")
 
+    def get_prepopulated_fields(self, request, obj=None):
+        # Fill the internal code in from the name as the administrator types.
+        # Only on the add form: on change the slug is read-only, and
+        # prepopulating a read-only field is a configuration error.
+        return {} if obj else {"slug": ("name",)}
+
     def get_readonly_fields(self, request, obj=None):
         # The slug is a stable internal code: editable when creating a
         # category, frozen afterwards.

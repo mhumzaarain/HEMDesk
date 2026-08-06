@@ -4,6 +4,7 @@ from datetime import date, timedelta
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
+from django.utils.text import slugify
 
 from apps.core.models import AppendOnlyModel, NoDeleteModel
 from apps.equipment.models import Equipment
@@ -41,6 +42,7 @@ class FaultCategory(models.Model):
     slug = models.SlugField(
         max_length=40,
         unique=True,
+        blank=True,
         help_text="Stable internal code. Set once when the category is created.",
     )
     description = models.CharField(
@@ -56,6 +58,14 @@ class FaultCategory(models.Model):
         ordering = ["sort_order", "name"]
         verbose_name = "fault category"
         verbose_name_plural = "fault categories"
+
+    def save(self, *args, **kwargs):
+        # An administrator adding a category fills in a name, not an internal
+        # code. Derive the code from the name when none was given; it is never
+        # rewritten afterwards, so the code stays stable across renames.
+        if not self.slug:
+            self.slug = slugify(self.name)[:40]
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.name
