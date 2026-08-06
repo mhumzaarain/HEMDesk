@@ -39,10 +39,15 @@ def test_login_page_shows_logo(client):
     response = client.get("/accounts/login/")
     assert b"img/logo.png" in response.content
 
+
 def test_admin_link_shown_to_staff_users(client, django_user_model):
     superadmin = django_user_model.objects.create_user(
-        username="root", password="pw", employee_id="EMP-999",
-        role="admin", is_staff=True, is_superuser=True,
+        username="root",
+        password="pw",
+        employee_id="EMP-999",
+        role="admin",
+        is_staff=True,
+        is_superuser=True,
     )
     client.force_login(superadmin)
     response = client.get(reverse("equipment_list"))
@@ -129,9 +134,7 @@ def test_align_is_staff_migration_backfills_rows_that_disagree(db, django_user_m
 
     from django.apps import apps as global_apps
 
-    migration = importlib.import_module(
-        "apps.accounts.migrations.0004_align_is_staff"
-    )
+    migration = importlib.import_module("apps.accounts.migrations.0004_align_is_staff")
 
     def make(username, employee_id, role, stale_is_staff, superuser=False):
         maker = (
@@ -161,6 +164,7 @@ def test_align_is_staff_migration_backfills_rows_that_disagree(db, django_user_m
     assert is_staff(stale_admin) is True
     assert is_staff(stale_boss) is True
     assert is_staff(plain_staff) is False
+
 
 def test_saving_with_an_empty_update_fields_writes_nothing(db, django_user_model):
     """Django treats update_fields=[] as "save nothing" and returns early;
