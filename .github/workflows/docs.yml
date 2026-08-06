@@ -6,6 +6,10 @@ on:
     paths: ["docs/**", "mkdocs.yml", ".github/workflows/docs.yml"]
   pull_request:
     paths: ["docs/**", "mkdocs.yml", ".github/workflows/docs.yml"]
+  # Lets you rebuild and redeploy the site on demand, without inventing a
+  # commit — needed when a push never reaches Actions, or when a deployment
+  # fails for reasons outside the repository.
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -24,13 +28,13 @@ jobs:
       - uses: astral-sh/setup-uv@v5
       - run: uv sync --only-group docs
       - run: uv run --no-sync mkdocs build --strict
-      - if: github.event_name == 'push'
+      - if: github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@v3
         with:
           path: site
 
   deploy:
-    if: github.event_name == 'push'
+    if: github.event_name != 'pull_request'
     needs: build
     runs-on: ubuntu-latest
     environment:

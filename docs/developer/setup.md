@@ -27,10 +27,46 @@ uv run cli.py manage seed_demo
 `init-workspace` generates a random one, so open `.env` and copy it. To use a
 password you pick yourself, edit `DEMO_PASSWORD` in `.env` *before* step 2.
 
-`init-workspace` refuses to run if `.env` already exists. `compose-up` starts
-the whole dev stack in Docker — see [Deployment](deployment.md) for what's
-running and how to work with it (restarting the worker, running commands
-inside a container, and so on).
+`compose-up` starts the whole dev stack in Docker — see
+[Deployment](deployment.md) for what's running and how to work with it
+(restarting the worker, running commands inside a container, and so on).
+
+## What `init-workspace` does
+
+`init-workspace` prepares your `.env` file. It is not just a file copy. It does
+four things, in this order:
+
+1. **It checks whether `.env` already exists.** If it does, the command stops
+   and changes nothing. It will never overwrite a configured environment, so it
+   is safe to run by mistake.
+2. **It copies `.env.example` to `.env`.**
+3. **It sets `ENVIRONMENT` to `development`.**
+4. **It replaces three placeholder values with freshly generated secrets** —
+   `SECRET_KEY`, `POSTGRES_PASSWORD` and `DEMO_PASSWORD`. Each new value is 50
+   random characters.
+
+Step 4 is the reason the command exists. `.env.example` is committed to the
+repository, so its placeholder values are public. Generating real values at
+setup time means every developer's machine, and every deployment, gets its own
+secrets instead of the ones printed in the example file.
+
+The generated characters deliberately exclude `$`, `#` and quote marks. Those
+would either break how `.env` is read or be treated as a variable reference by
+Docker Compose.
+
+### What it does not do
+
+`init-workspace` only prepares the configuration file. It is the first step of
+setup, not the whole of it. After running it you still need to:
+
+- start the stack — `uv run cli.py compose-up`. The database tables are created
+  for you here: the app container runs the migrations itself as it starts.
+- create the accounts — `uv run cli.py manage seed_demo` in development, or
+  `uv run cli.py manage create_superuser` in production. Until you do this
+  nobody can log in, because a fresh database has no users.
+
+It also does not install dependencies. Run `uv sync` first, as the quick start
+above shows.
 
 ## The demo accounts
 
