@@ -59,9 +59,11 @@ Docker Compose.
 `init-workspace` only prepares the configuration file. It is the first step of
 setup, not the whole of it. After running it you still need to:
 
-- start the stack — `uv run cli.py compose-up`
-- create the database tables and accounts — `uv run cli.py manage seed_demo` in
-  development, or `uv run cli.py manage create_superuser` in production
+- start the stack — `uv run cli.py compose-up`. The database tables are created
+  for you here: the app container runs the migrations itself as it starts.
+- create the accounts — `uv run cli.py manage seed_demo` in development, or
+  `uv run cli.py manage create_superuser` in production. Until you do this
+  nobody can log in, because a fresh database has no users.
 
 It also does not install dependencies. Run `uv sync` first, as the quick start
 above shows.
