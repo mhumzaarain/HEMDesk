@@ -102,6 +102,95 @@ def test_admin_can_add_a_category_with_the_documented_fields(client, django_user
     assert category.slug == "water-ingress"
 
 
+@pytest.fixture
+def admin_client_fc(client, django_user_model):
+    boss = django_user_model.objects.create_superuser(
+        username="root-slug", password="pw", employee_id="EMP-FC2"
+    )
+    client.force_login(boss)
+    return client
+
+
+def add_category(admin_client_fc, **fields):
+    payload = {"name": "", "slug": "", "description": "", "sort_order": "100"}
+    payload.update(fields)
+    return admin_client_fc.post("/admin/maintenance/faultcategory/add/", payload)
+
+
+def form_errors(response):
+    """The add form's errors, keyed by field name ("__all__" for non-field)."""
+    return response.context["adminform"].form.errors
+
+
+def test_a_name_clashing_on_code_is_refused_not_crashed(admin_client_fc):
+    FaultCategory.objects.create(name="Battery")
+
+    response = add_category(admin_client_fc, name="battery")
+
+    assert response.status_code == 200, response.status_code
+    errors = form_errors(response)
+    # The administrator typed a name, so the message belongs on Name — and it
+    # must say which existing category is in the way.
+    assert list(errors) == ["name"], dict(errors)
+    assert "already uses the internal code" in errors["name"][0]
+    assert "Battery" in errors["name"][0]
+    assert "battery" in errors["name"][0]
+    assert "already uses the internal code" in response.content.decode()
+    assert FaultCategory.objects.filter(name="battery").count() == 0
+
+
+def test_a_punctuation_variant_clashing_on_code_is_refused(admin_client_fc):
+    FaultCategory.objects.create(name="Battery")
+
+    response = add_category(admin_client_fc, name="Battery!")
+
+    assert response.status_code == 200, response.status_code
+    errors = form_errors(response)
+    assert list(errors) == ["name"], dict(errors)
+    assert "already uses the internal code" in errors["name"][0]
+    assert FaultCategory.objects.filter(name="Battery!").count() == 0
+
+
+def test_a_name_that_yields_no_code_asks_for_one(admin_client_fc):
+    response = add_category(admin_client_fc, name="水浸")
+
+    assert response.status_code == 200, response.status_code
+    errors = form_errors(response)
+    # The fix is to type a code, so the message belongs on the code box.
+    assert list(errors) == ["slug"], dict(errors)
+    assert "An internal code could not be built" in errors["slug"][0]
+    assert "An internal code could not be built" in response.content.decode()
+    assert not FaultCategory.objects.filter(name="水浸").exists()
+
+
+def test_a_name_that_yields_no_code_is_accepted_with_a_typed_code(admin_client_fc):
+    response = add_category(admin_client_fc, name="水浸", slug="water-ingress-cn")
+
+    assert response.status_code == 302, response.content.decode()
+    assert FaultCategory.objects.get(name="水浸").slug == "water-ingress-cn"
+
+
+def test_renaming_a_category_leaves_its_code_untouched(fault):
+    category = fault("mechanical")
+    category.name = "Mechanical / Structural"
+    category.full_clean()
+    category.save()
+
+    category.refresh_from_db()
+    assert category.slug == "mechanical"
+
+
+def test_a_long_name_does_not_leave_a_trailing_hyphen(admin_client_fc):
+    long_name = "Electrical supply and distribution wire fault"
+
+    response = add_category(admin_client_fc, name=long_name)
+
+    assert response.status_code == 302, response.content.decode()
+    slug = FaultCategory.objects.get(name=long_name).slug
+    assert len(slug) <= 40
+    assert not slug.endswith("-"), slug
+
+
 def test_the_audit_entry_records_the_slug_not_the_name(equipment, engineer, fault):
     from apps.core.models import AuditLog
 

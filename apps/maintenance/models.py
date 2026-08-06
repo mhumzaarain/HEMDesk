@@ -2,6 +2,7 @@ import calendar
 from datetime import date, timedelta
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 from django.utils.text import slugify
@@ -59,10 +60,38 @@ class FaultCategory(models.Model):
         verbose_name = "fault category"
         verbose_name_plural = "fault categories"
 
-    def save(self, *args, **kwargs):
+    def clean(self):
         # An administrator adding a category fills in a name, not an internal
-        # code. Derive the code from the name when none was given; it is never
-        # rewritten afterwards, so the code stays stable across renames.
+        # code. Derive the code here, during validation, so that a name which
+        # yields no code or one already taken becomes a form error the
+        # administrator can act on rather than a database error page.
+        super().clean()
+        if self.slug:
+            # Already set — either typed by hand or carried by an existing
+            # category. The code never changes, so a rename is safe.
+            return
+        derived = slugify(self.name)[:40].strip("-")
+        if not derived:
+            raise ValidationError(
+                {
+                    "slug": "An internal code could not be built from this name. "
+                    "Type one yourself, using letters, numbers and hyphens."
+                }
+            )
+        clash = FaultCategory.objects.filter(slug=derived).exclude(pk=self.pk).first()
+        if clash:
+            raise ValidationError(
+                {
+                    "name": f"“{clash.name}” already uses the internal code "
+                    f"“{derived}”. Choose a different name."
+                }
+            )
+        self.slug = derived
+
+    def save(self, *args, **kwargs):
+        # Safety net for callers that skip validation — the seeder, management
+        # commands, the shell. Form-driven saves have already been through
+        # clean() above.
         if not self.slug:
             self.slug = slugify(self.name)[:40]
         super().save(*args, **kwargs)
