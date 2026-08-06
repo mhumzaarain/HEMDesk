@@ -4,19 +4,18 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('maintenance', '0005_seed_and_map_fault_categories'),
+        ("maintenance", "0005_seed_and_map_fault_categories"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='workorder',
-            name='fault_category',
+            model_name="workorder",
+            name="fault_category",
         ),
         migrations.RenameField(
-            model_name='workorder',
-            old_name='fault_category_new',
-            new_name='fault_category',
+            model_name="workorder",
+            old_name="fault_category_new",
+            new_name="fault_category",
         ),
     ]

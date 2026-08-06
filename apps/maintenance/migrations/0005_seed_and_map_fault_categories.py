@@ -1,23 +1,44 @@
 from django.db import migrations
 
 CATEGORIES = [
-    (10, "electrical", "Electrical",
-     "Mains supply, power supply unit, wiring, fuses or switches failed"),
-    (20, "electronic_boards", "Electronic boards",
-     "A circuit board or module was repaired or replaced"),
-    (30, "display_monitor", "Display / Monitor",
-     "Screen, touch panel or display output failed"),
-    (40, "mechanical", "Mechanical",
-     "A moving or structural part was damaged, repaired or replaced"),
-    (50, "calibration", "Calibration",
-     "Calibration or adjustment was needed"),
-    (60, "software", "Software",
-     "Firmware or software error, crash, freeze or update required"),
-    (70, "accessory_probe", "Accessory / Probe / Battery",
-     "A probe, sensor, cable, battery or charging circuit failed, "
-     "not the main unit"),
-    (80, "other", "Other",
-     "Anything not covered above — explain in the remark"),
+    (
+        10,
+        "electrical",
+        "Electrical",
+        "Mains supply, power supply unit, wiring, fuses or switches failed",
+    ),
+    (
+        20,
+        "electronic_boards",
+        "Electronic boards",
+        "A circuit board or module was repaired or replaced",
+    ),
+    (
+        30,
+        "display_monitor",
+        "Display / Monitor",
+        "Screen, touch panel or display output failed",
+    ),
+    (
+        40,
+        "mechanical",
+        "Mechanical",
+        "A moving or structural part was damaged, repaired or replaced",
+    ),
+    (50, "calibration", "Calibration", "Calibration or adjustment was needed"),
+    (
+        60,
+        "software",
+        "Software",
+        "Firmware or software error, crash, freeze or update required",
+    ),
+    (
+        70,
+        "accessory_probe",
+        "Accessory / Probe / Battery",
+        "A probe, sensor, cable, battery or charging circuit failed, not the main unit",
+    ),
+    (80, "other", "Other", "Anything not covered above — explain in the remark"),
 ]
 
 # Old text value -> new slug. battery_power folds into the accessory
