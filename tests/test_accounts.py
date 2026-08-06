@@ -161,3 +161,22 @@ def test_align_is_staff_migration_backfills_rows_that_disagree(db, django_user_m
     assert is_staff(stale_admin) is True
     assert is_staff(stale_boss) is True
     assert is_staff(plain_staff) is False
+
+def test_saving_with_an_empty_update_fields_writes_nothing(db, django_user_model):
+    """Django treats update_fields=[] as "save nothing" and returns early;
+    the is_staff override must not turn that into an UPDATE."""
+    from django.db import connection
+    from django.test.utils import CaptureQueriesContext
+
+    user = django_user_model.objects.create_user(
+        username="noop", password="pw", employee_id="EMP-505", role="staff"
+    )
+    user.role = "admin"
+
+    with CaptureQueriesContext(connection) as ctx:
+        user.save(update_fields=[])
+
+    assert ctx.captured_queries == []
+    user.refresh_from_db()
+    assert user.role == "staff"
+    assert user.is_staff is False

@@ -35,7 +35,10 @@ class User(AbstractUser):
         # whatever their role: createsuperuser does not prompt for one, and
         # stripping it would lock the only administrator out.
         self.is_staff = self.is_superuser or self.role == Roles.ADMIN
-        if kwargs.get("update_fields") is not None:
+        # A truthiness check, not "is not None": Django treats an empty
+        # update_fields as "save nothing" and returns early, and adding
+        # is_staff to it would turn that no-op into an UPDATE.
+        if kwargs.get("update_fields"):
             kwargs["update_fields"] = set(kwargs["update_fields"]) | {"is_staff"}
         super().save(*args, **kwargs)
 
