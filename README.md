@@ -155,23 +155,19 @@ Those two values are now your login, with the Admin role already set.
 `--force` resets the password. To type the password instead of storing it, run
 `uv run cli.py manage createsuperuser` (Django's interactive version), then set
 that user's Role to Admin in `/admin/`.
-2. **Create every other user** via the Django admin at `/admin/` — set each
-   person's username, role, employee ID, and an initial password.
-3. **Each user changes their own password** at `/accounts/password_change/`
-   (the "Change password" link in the top nav). Admins can also reset a
-   password from `/admin/`.
+
+With that account you can then:
+
+1. **Create every other user** via the Django admin at `/admin/` — set each
+   person's username, employee ID, Role, and an initial password. The Role is
+   the only permission setting: it decides what they see in the app, and
+   whether they can open the admin site at all.
+2. **Ask each user to change their own password** at
+   `/accounts/password_change/` (the "Change password" link in the top nav).
+   Admins can also reset a password from `/admin/`.
 
 So `.env` holds infrastructure config plus (optionally) the single bootstrap
 admin password; all real people are managed in the app.
-
-## Docs
-
-**📚 Full documentation:** https://mhumzaarain.github.io/HEMDesk/
-
-Internal design specs, implementation plans, and deferred-work notes are
-intentionally kept out of `main` and live under `docs/superpowers/` and
-`docs/FOLLOWUPS.md` on the `feature/accessory-replacement` branch
-(maintainers only).
 
 ## License
 
