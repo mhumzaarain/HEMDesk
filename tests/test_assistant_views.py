@@ -93,3 +93,19 @@ def test_panel_dropdown_covers_all_fault_categories(
     assert 'name="fault_category"' in html
     for value in FaultCategory.objects.values_list("slug", flat=True):
         assert f'value="{value}"' in html
+
+
+def test_panel_dropdown_on_a_work_order_covers_all_fault_categories(
+    engineer_client, engineer, equipment, make_work_order
+):
+    """The panel renders on the work order page too, and its dropdown is
+    silently empty if the view forgets fault_categories in the context."""
+    from apps.maintenance.models import FaultCategory
+
+    wo = make_work_order()
+    url = reverse("workorder_detail", args=[wo.pk])
+    response = engineer_client.get(url)
+    html = response.content.decode()
+    assert 'name="fault_category"' in html
+    for value in FaultCategory.objects.values_list("slug", flat=True):
+        assert f'value="{value}"' in html
