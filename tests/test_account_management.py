@@ -106,3 +106,27 @@ def test_change_password_rejects_wrong_old_password(client, staff_user):
     assert response.status_code == 200  # re-renders with errors
     staff_user.refresh_from_db()
     assert staff_user.check_password("pw")  # unchanged
+
+
+# --- admin site hides groups and permissions ---
+
+
+def test_user_admin_form_offers_no_groups_or_permissions(client, django_user_model):
+    boss = django_user_model.objects.create_superuser(
+        username="root", password="pw", employee_id="EMP-999"
+    )
+    client.force_login(boss)
+    html = client.get(f"/admin/accounts/user/{boss.pk}/change/").content.decode()
+
+    assert 'name="groups"' not in html
+    assert 'name="user_permissions"' not in html
+
+
+def test_admin_index_has_no_groups_section(client, django_user_model):
+    boss = django_user_model.objects.create_superuser(
+        username="root2", password="pw", employee_id="EMP-998"
+    )
+    client.force_login(boss)
+    html = client.get("/admin/").content.decode()
+
+    assert "/admin/auth/group/" not in html
