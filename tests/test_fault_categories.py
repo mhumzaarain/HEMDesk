@@ -122,6 +122,44 @@ def form_errors(response):
     return response.context["adminform"].form.errors
 
 
+def test_the_add_form_does_not_prefill_the_code_in_the_browser(admin_client_fc):
+    """The code is derived on the server. If the admin site also filled the box
+    in with JavaScript, a real browser would post a non-empty code and take a
+    different validation path from the one every other test here exercises."""
+    response = admin_client_fc.get("/admin/maintenance/faultcategory/add/")
+
+    assert response.status_code == 200
+    adminform = response.context["adminform"]
+    assert adminform.prepopulated_fields == [], adminform.prepopulated_fields
+    # The admin always emits the attribute; what matters is that it is empty,
+    # so the JavaScript has no field to drive.
+    assert 'data-prepopulated-fields="[]"' in response.content.decode()
+    assert adminform.form["slug"].value() in (None, "")
+
+
+def test_a_hand_typed_clashing_code_fails_gracefully(admin_client_fc):
+    """With the prepopulating JavaScript gone, a non-empty code can only be
+    typed by hand. It must still be a form error rather than a crash."""
+    response = add_category(
+        admin_client_fc, name="Electrical faults", slug="electrical"
+    )
+
+    assert response.status_code == 200, response.status_code
+    errors = form_errors(response)
+    assert list(errors) == ["slug"], dict(errors)
+    assert not FaultCategory.objects.filter(name="Electrical faults").exists()
+
+
+def test_saving_a_name_that_yields_no_code_is_refused_outright():
+    """No form involved — the seeder, a management command, the shell. Letting
+    a row with an empty code exist would break the assistant's filter and make
+    the change form uneditable, so refuse it at the source."""
+    with pytest.raises(ValueError, match="internal code"):
+        FaultCategory.objects.create(name="水浸")
+
+    assert not FaultCategory.objects.filter(name="水浸").exists()
+
+
 def test_a_name_clashing_on_code_is_refused_not_crashed(admin_client_fc):
     FaultCategory.objects.create(name="Battery")
 

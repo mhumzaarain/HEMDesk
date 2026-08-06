@@ -93,7 +93,16 @@ class FaultCategory(models.Model):
         # commands, the shell. Form-driven saves have already been through
         # clean() above.
         if not self.slug:
-            self.slug = slugify(self.name)[:40]
+            self.slug = slugify(self.name)[:40].strip("-")
+        if not self.slug:
+            # A row with an empty code would filter nothing in the assistant,
+            # record nothing in the audit trail, and could not be edited back
+            # into shape on the change form, where the code is read-only.
+            # Refuse it here so no such row can be created at all.
+            raise ValueError(
+                f"No internal code could be built from the name {self.name!r}. "
+                "Pass an explicit slug."
+            )
         super().save(*args, **kwargs)
 
     def __str__(self):
