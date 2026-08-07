@@ -109,11 +109,24 @@ def test_stack_deploy_passes_env_and_layers_prod(workspace, calls, swarm_active)
     assert result.exit_code == 0
     cmd, env = calls[0]
     assert cmd == (
-        "docker stack deploy --detach "
+        "docker stack deploy --detach --resolve-image never "
         "-c docker-compose.yml -c docker-compose.prod.yml hemdesk"
     )
     assert env["LLM_MODEL"] == "llama3.2:3b"
     assert env["ENVIRONMENT"] == "production"
+
+
+def test_stack_deploy_never_resolves_image_from_registry(
+    workspace, calls, swarm_active
+):
+    # Without this flag, Swarm's default ("always") pins the service to a
+    # registry digest, which silently overrides any locally built image —
+    # breaking the ARM/offline build-locally path. Do not drop this flag.
+    set_env(workspace, mode="production")
+    result = runner.invoke(cli.app, ["stack-deploy"])
+    assert result.exit_code == 0
+    cmd, _ = calls[0]
+    assert "--resolve-image never" in cmd
 
 
 def test_stack_deploy_refuses_in_development(workspace, calls, swarm_active):

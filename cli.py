@@ -131,7 +131,12 @@ def compose_down():
 
 @app.command()
 def compose_build():
-    """Build the production images (also the pre-PR smoke build)."""
+    """Build the production images locally, under the published image's name.
+
+    Used only when the node cannot reach the registry or is not amd64 —
+    normal deploys pull the published image instead. Also doubles as the
+    pre-PR smoke build.
+    """
     environment()  # touch .env so the missing-file hint fires early
     _run(f"docker compose -f docker-compose.yml -p {STACK_NAME} build")
 
@@ -160,8 +165,17 @@ def stack_deploy():
         )
     if _capture("docker info --format {{.Swarm.LocalNodeState}}") != "active":
         sys.exit("Docker Swarm is not active on this node — run: docker swarm init")
+    # --resolve-image never: Swarm's default ("always") re-resolves the tag to
+    # a registry digest and pins the service to that digest, ignoring any
+    # image already on the node. That breaks the ARM/offline path (a locally
+    # built image gets silently replaced by the pulled amd64 digest) and it
+    # means a local `compose-build` cannot actually be used to run a build
+    # before it is pushed. On a single node there is nothing to gain from
+    # digest pinning, so always deploy exactly the image present on this node.
+    # Do not remove this flag.
     _run(
-        f"docker stack deploy --detach {PROD_LAYERING} {STACK_NAME}",
+        f"docker stack deploy --detach --resolve-image never "
+        f"{PROD_LAYERING} {STACK_NAME}",
         env=values,
     )
 
