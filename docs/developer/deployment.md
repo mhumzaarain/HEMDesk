@@ -112,9 +112,10 @@ uv run cli.py compose-build
 ```
 
 That is also the answer for a server with no access to `ghcr.io`. Either way,
-`stack-deploy` runs `docker stack deploy --resolve-image never`, so it always
-deploys the image already on the node instead of re-checking the registry —
-the local build is the one that ends up running.
+`stack-deploy` runs `docker stack deploy --resolve-image never`: the node
+uses the image it already has under that name and tag, and only pulls one
+when it doesn't — so it never re-checks the registry for a newer image under
+a tag it already has, and the local build is the one that ends up running.
 
 **The running containers never read `.env`.** This surprises people, so it is
 worth being precise. When you run `stack-deploy`, Swarm reads `.env` once,
@@ -160,16 +161,23 @@ Another thing to watch: re-running `stack-deploy` with `IMAGE_TAG` **unchanged**
 does not pick up a newer image, even a newer `latest` pulled by someone else on
 that tag. Nothing in the service definition changed, so Swarm sees no change
 and does not touch the running containers — it does not re-pull. This is true
-whether the tag is `latest` or a pinned version. To force the running
-containers onto whatever image currently has that tag, run:
+whether the tag is `latest` or a pinned version.
+
+`docker service update --force` does not fix this by itself. It restarts a
+service's tasks, but the node still reuses whatever image it already has
+under that tag — it does not pull first. To actually pick up a newer
+`latest`, pull it on the node, then force-update each service in turn (the
+command only accepts one service at a time):
 
 ```bash
-docker service update --force hemdesk_web hemdesk_worker
+docker pull ghcr.io/mhumzaarain/hemdesk:latest
+docker service update --force hemdesk_web
+docker service update --force hemdesk_worker
 ```
 
 Changing `IMAGE_TAG` from one value to another (for example `1.1.0` to
 `1.2.0`) always updates normally through `stack-deploy` — only an unchanged
-tag needs the command above. This is a concrete reason to pin a version
+tag needs the steps above. This is a concrete reason to pin a version
 instead of running `latest`: pinning makes every upgrade an explicit `.env`
 edit, instead of leaving you unsure whether a plain `stack-deploy` actually
 picked up the newest build.
