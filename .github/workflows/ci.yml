@@ -49,3 +49,11 @@ jobs:
           docker compose -f docker-compose.yml config > /dev/null
           docker compose -f docker-compose.yml -f docker-compose.dev.yml config > /dev/null
           docker compose -f docker-compose.yml -f docker-compose.prod.yml config > /dev/null
+      - name: Production services resolve to the published image
+        run: |
+          unset IMAGE_TAG
+          grep -v '^IMAGE_TAG=' .env > .env.no-image-tag
+          docker compose --env-file .env.no-image-tag -f docker-compose.yml -f docker-compose.prod.yml config \
+            | grep -q "image: ghcr.io/mhumzaarain/hemdesk:latest"
+          IMAGE_TAG=1.2.0 docker compose -f docker-compose.yml -f docker-compose.prod.yml config \
+            | grep -q "image: ghcr.io/mhumzaarain/hemdesk:1.2.0"
