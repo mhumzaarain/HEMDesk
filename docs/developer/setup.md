@@ -149,6 +149,28 @@ Two things to know in this mode:
 - Format: `uv run cli.py format`
 - Docs: `uv run mkdocs serve`
 
+## Cutting a release
+
+A release is what publishes a production image. Tag a commit that is already on
+`main`:
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+The `Release` workflow builds the image and publishes it to
+`ghcr.io/mhumzaarain/hemdesk` as `1.0.0`, and moves `latest` to it. Operators
+then choose that release with the `IMAGE_TAG` line in their `.env` — see the
+[deployment guide](deployment.md#which-image-production-runs).
+
+The first release needs one manual step afterwards, once and never again. A
+package published by a workflow starts out private, even from a public
+repository. Open **Packages** on the account, choose `hemdesk`, then **Package
+settings**, then **Change visibility**, and set it to public. Until that is
+done, every pull fails with `denied: denied`, which looks like a broken
+workflow but is not one.
+
 ## Conventions
 
 For coding conventions and the pull request process, see [CONTRIBUTING.md on GitHub](https://github.com/mhumzaarain/HEMDesk/blob/main/CONTRIBUTING.md).

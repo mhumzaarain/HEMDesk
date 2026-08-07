@@ -119,10 +119,11 @@ before any real deployment.
 
 ## Production
 
-Production runs on a single-node Docker Swarm rather than plain Compose:
+Production runs on a single-node Docker Swarm rather than plain Compose, and
+runs a published image — `ghcr.io/mhumzaarain/hemdesk`. Choose the release with
+the `IMAGE_TAG` line in `.env`, then deploy:
 
 ```bash
-uv run cli.py compose-build
 uv run cli.py stack-deploy
 ```
 

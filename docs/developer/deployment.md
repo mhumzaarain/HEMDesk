@@ -84,6 +84,33 @@ uv run cli.py stack-deploy    # deploy to the swarm
 quotes included, so a quoted value would end up literally in the app), and
 checks that Swarm is active on the node before deploying.
 
+### Which image production runs
+
+Every release is published as one image, used by both `web` and `worker`:
+
+```
+ghcr.io/mhumzaarain/hemdesk
+```
+
+The `IMAGE_TAG` line in `.env` chooses which release this node runs:
+
+```bash
+IMAGE_TAG=1.2.0     # this release, until you change the line
+IMAGE_TAG=latest    # whichever release is newest at deploy time
+```
+
+There is no leading `v`. The release tagged `v1.2.0` in git publishes the image
+tag `1.2.0`. Writing `v1.2.0` here fails the pull with `manifest unknown`.
+
+The published images are built for `amd64` (x86-64) only. They will not run on
+an ARM server. An ARM node has to build its own image instead:
+
+```bash
+uv run cli.py compose-build
+```
+
+That is also the answer for a server with no access to `ghcr.io`.
+
 **The running containers never read `.env`.** This surprises people, so it is
 worth being precise. When you run `stack-deploy`, Swarm reads `.env` once,
 takes a *copy* of the values, and hands that copy to the containers it starts.
@@ -103,11 +130,23 @@ happened".
 
 **Upgrades:**
 
+1. `git pull` — the server still needs the repository, because `cli.py`, the
+   compose files, and `nginx.conf` live there.
+2. Set `IMAGE_TAG` in `.env` to the release you want to run.
+3. `uv run cli.py stack-deploy` — Swarm pulls the image and restarts the
+   services.
+
 ```bash
 git pull
-uv run cli.py compose-build
-uv run cli.py stack-deploy
+uv run cli.py stack-deploy    # after editing IMAGE_TAG in .env
 ```
+
+Rolling back is the same three steps with the previous release. Nothing is
+rebuilt, because every published release stays in the registry.
+
+One thing to watch: if `IMAGE_TAG=latest` and someone has run `compose-build`
+on this node, the local build shadows the published `latest`, and Swarm keeps
+using the local one. Pin a release and this cannot happen.
 
 > Swarm configs are immutable — if `nginx.conf` changed since the last
 > deploy, `stack-deploy` will fail to update it in place. Run
