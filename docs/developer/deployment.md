@@ -74,8 +74,10 @@ defaults only work for local testing.
 
 **Deploy:**
 
+Set `IMAGE_TAG` in `.env` to the release you want to run (see
+[Which image production runs](#which-image-production-runs) below), then:
+
 ```bash
-uv run cli.py compose-build   # build the production images
 uv run cli.py stack-deploy    # deploy to the swarm
 ```
 
@@ -109,7 +111,10 @@ an ARM server. An ARM node has to build its own image instead:
 uv run cli.py compose-build
 ```
 
-That is also the answer for a server with no access to `ghcr.io`.
+That is also the answer for a server with no access to `ghcr.io`. Either way,
+`stack-deploy` runs `docker stack deploy --resolve-image never`, so it always
+deploys the image already on the node instead of re-checking the registry —
+the local build is the one that ends up running.
 
 **The running containers never read `.env`.** This surprises people, so it is
 worth being precise. When you run `stack-deploy`, Swarm reads `.env` once,
@@ -145,8 +150,45 @@ Rolling back is the same three steps with the previous release. Nothing is
 rebuilt, because every published release stays in the registry.
 
 One thing to watch: if `IMAGE_TAG=latest` and someone has run `compose-build`
-on this node, the local build shadows the published `latest`, and Swarm keeps
-using the local one. Pin a release and this cannot happen.
+on this node, the local build shadows the published `latest`. `stack-deploy`
+never checks the registry for a newer image with the same tag — it deploys
+whatever image with that name is already on the node, which is now the local
+build. Pin a release and this cannot happen, because pinning to a version you
+have not built locally leaves only the pulled image on the node.
+
+Another thing to watch: re-running `stack-deploy` with `IMAGE_TAG` **unchanged**
+does not pick up a newer image, even a newer `latest` pulled by someone else on
+that tag. Nothing in the service definition changed, so Swarm sees no change
+and does not touch the running containers — it does not re-pull. This is true
+whether the tag is `latest` or a pinned version. To force the running
+containers onto whatever image currently has that tag, run:
+
+```bash
+docker service update --force hemdesk_web hemdesk_worker
+```
+
+Changing `IMAGE_TAG` from one value to another (for example `1.1.0` to
+`1.2.0`) always updates normally through `stack-deploy` — only an unchanged
+tag needs the command above. This is a concrete reason to pin a version
+instead of running `latest`: pinning makes every upgrade an explicit `.env`
+edit, instead of leaving you unsure whether a plain `stack-deploy` actually
+picked up the newest build.
+
+After deploying, confirm it landed:
+
+```bash
+docker stack ps hemdesk
+docker service ls
+```
+
+`docker stack ps hemdesk` lists the current and recent tasks. A healthy
+deploy shows the new tasks `Running`. A bad `IMAGE_TAG` (for example the
+leading-`v` mistake above) shows tasks cycling through
+`Rejected`/`manifest unknown` or stuck `Preparing`, with the old tasks still
+`Running` alongside them — the site stays up on the old version, but the new
+one never comes up. `docker service ls` shows the same thing at a glance: the
+`REPLICAS` column for `hemdesk_web` and `hemdesk_worker` should read `1/1`;
+anything else means the new tasks are not starting.
 
 > Swarm configs are immutable — if `nginx.conf` changed since the last
 > deploy, `stack-deploy` will fail to update it in place. Run
