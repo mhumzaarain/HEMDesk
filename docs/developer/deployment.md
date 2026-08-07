@@ -190,13 +190,19 @@ docker service ls
 ```
 
 `docker stack ps hemdesk` lists the current and recent tasks. A healthy
-deploy shows the new tasks `Running`. A bad `IMAGE_TAG` (for example the
-leading-`v` mistake above) shows tasks cycling through
-`Rejected`/`manifest unknown` or stuck `Preparing`, with the old tasks still
-`Running` alongside them — the site stays up on the old version, but the new
-one never comes up. `docker service ls` shows the same thing at a glance: the
-`REPLICAS` column for `hemdesk_web` and `hemdesk_worker` should read `1/1`;
-anything else means the new tasks are not starting.
+deploy shows the new tasks `Running`, and `docker service ls` shows `1/1` in
+the `REPLICAS` column for both `hemdesk_web` and `hemdesk_worker`.
+
+A bad `IMAGE_TAG` (for example the leading-`v` mistake above) looks
+different, and worse: Swarm stops the old task before it starts the new one,
+so once the new task fails there is no old task left to fall back on. You
+will see tasks `Rejected` with `manifest unknown`, or stuck `Preparing`, and
+`docker service ls` reading `0/1` in `REPLICAS`. The site is down at this
+point, not just behind — and Swarm will not fix it by itself, because it
+pauses on a failed update instead of rolling back. Put a correct `IMAGE_TAG`
+back in `.env` and run `uv run cli.py stack-deploy` again to recover. This is
+why it matters to check the deploy right away instead of walking away from
+it.
 
 > Swarm configs are immutable — if `nginx.conf` changed since the last
 > deploy, `stack-deploy` will fail to update it in place. Run
