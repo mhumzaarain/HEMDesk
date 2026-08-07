@@ -27,3 +27,19 @@ def test_web_and_worker_can_still_build_locally():
 
 def test_env_example_defaults_the_image_tag():
     assert "IMAGE_TAG=latest" in read(".env.example")
+
+
+def test_release_workflow_publishes_on_version_tags():
+    workflow = read(".github/workflows/release.yml")
+    assert 'tags: ["v*"]' in workflow
+
+
+def test_release_workflow_can_write_packages():
+    # The run's automatic GITHUB_TOKEN needs this; no stored token exists.
+    assert "packages: write" in read(".github/workflows/release.yml")
+
+
+def test_release_workflow_builds_the_documented_image_for_amd64():
+    workflow = read(".github/workflows/release.yml")
+    assert f"images: {IMAGE}" in workflow
+    assert "platforms: linux/amd64" in workflow
