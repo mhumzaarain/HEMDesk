@@ -34,8 +34,8 @@ Every answer is built from four sources, assembled fresh for each question:
   [uploaded manual](manuals.md), cited with page numbers so you can go
   straight to the source.
 - **Your team's repair history** — up to five completed repairs on the same
-  model, best matches first, including the closing remarks that say what
-  actually fixed it.
+  model, the closest matches, most recent first, including the closing
+  remarks that say what actually fixed it.
 
 ## Focusing on one fault type
 
