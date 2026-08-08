@@ -1,6 +1,34 @@
 # HEMDesk — Biomedical CMMS
 
-HEMDesk is a hospital medical-equipment management system that combines an equipment registry with malfunction complaints, repairs, preventive maintenance, and monthly reports.
+HEMDesk is a hospital medical-equipment management system. It keeps a record of
+every device, takes malfunction complaints through to a confirmed repair, keeps
+preventive maintenance on schedule, and reports on all of it — with a built-in
+AI assistant that answers from your hospital's own manuals and repair history.
+
+## What it does
+
+- **Equipment registry** — a searchable record of every device, registered one
+  at a time or bulk-imported from Excel or CSV.
+- **Accessories & stock** — accessory types, stock levels, faults, and
+  replacements.
+- **Complaints & repairs** — staff lodge complaints, engineers work them
+  through a queue and work orders, and the reporter confirms the fix.
+- **Preventive maintenance** — PPM schedules per device, with a due list.
+- **Dashboard & reports** — 30-day KPIs and trends, plus monthly PDF reports.
+- **AI assistant** — troubleshooting answers grounded in your service manuals
+  and past repairs.
+
+## How the AI works
+
+Upload a service manual and it is indexed page by page. When an engineer asks a
+question about a device, the assistant searches that model's manual two ways at
+once — by keyword and by meaning — so it finds the right section even when the
+engineer's words differ from the manual's. It quotes those sections with page
+numbers.
+
+It also looks up how your team fixed the same fault on the same model before,
+and includes what worked. See [asking the assistant](ai/assistant.md) and
+[service manuals](ai/manuals.md).
 
 ## Roles
 
