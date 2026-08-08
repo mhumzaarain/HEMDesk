@@ -20,7 +20,8 @@ AI assistant that answers from your hospital's own manuals and repair history.
 
 ## How the AI works
 
-Upload a service manual and it is indexed page by page. When an engineer asks a
+Upload a service manual and it is indexed in overlapping sections, each tagged
+with the pages it covers. When an engineer asks a
 question about a device, the assistant searches that model's manual two ways at
 once — by keyword and by meaning — so it finds the right section even when the
 engineer's words differ from the manual's. It quotes those sections with page
