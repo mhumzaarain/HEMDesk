@@ -160,8 +160,7 @@ have not built locally leaves only the pulled image on the node.
 Another thing to watch: re-running `stack-deploy` with `IMAGE_TAG` **unchanged**
 does not pick up a newer image, even a newer `latest` pulled by someone else on
 that tag. Nothing in the service definition changed, so Swarm sees no change
-and does not touch the running containers — it does not re-pull. This is true
-whether the tag is `latest` or a pinned version.
+and does not touch the running containers — it does not re-pull.
 
 `docker service update --force` does not fix this by itself. It restarts a
 service's tasks, but the node still reuses whatever image it already has
