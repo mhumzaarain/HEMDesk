@@ -7,9 +7,11 @@ device, take a malfunction complaint through to a confirmed repair, keep
 preventive maintenance on schedule, and report on all of it. Server-rendered
 Django, no separate frontend.
 
-The built-in AI assistant is retrieval-augmented. It answers from your own
-service manuals and your own repair history, with page citations — not from
-general knowledge about medical devices.
+The built-in AI assistant is retrieval-augmented. Every question is answered
+from context the app retrieves first: the matching sections of your own
+service manuals, and your own past repairs on that model. The assistant is
+instructed to ground its answer in that material and to say so plainly when
+the material does not cover the question.
 
 **📚 Full documentation:** https://mhumzaarain.github.io/HEMDesk/ (user guide + developer overview).
 
@@ -55,11 +57,13 @@ manufacturer and model, covering every unit registered under it. When an
 engineer asks a question, two retrievers run over the chunks of that device's
 manual: Postgres full-text search, and cosine similarity over pgvector
 embeddings. The two ranked lists are combined with Reciprocal Rank Fusion, so a
-chunk that only one retriever found still surfaces. Answers cite page numbers.
+chunk that only one retriever found still surfaces. Every retrieved section
+carries the pages it came from, so answers can point back to the source.
 
 The manual is half the context. Up to five completed repairs on the same model
-are retrieved alongside it, best matches first, and can be narrowed to a single
-fault category — so the answer carries what actually fixed the fault last time.
+are retrieved alongside it, the closest matches, most recent first, and can be
+narrowed to a single fault category — so the answer carries what actually
+fixed the fault last time.
 
 If the embedding backend is unreachable, or the stored vectors came from a
 different embedding model than the one now configured, retrieval falls back to
@@ -71,7 +75,8 @@ devices and the narrative in the monthly PDF report.
 ### Architecture notes
 
 - **Server-rendered.** HTMX and Alpine.js handle live search, the complaint
-  queue, and the assistant panel. There is no separate frontend build step.
+  queue, and the assistant panel. The compiled CSS is committed, so running
+  the app needs no frontend build step.
 - **One datastore.** Postgres holds the application data, the full-text search
   index, the embedding vectors, and the task queue. There is no separate search
   engine, vector database, or message broker.

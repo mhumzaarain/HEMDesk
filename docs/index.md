@@ -20,15 +20,15 @@ AI assistant that answers from your hospital's own manuals and repair history.
 
 ## How the AI works
 
-Upload a service manual and it is indexed in overlapping sections, each tagged
-with the pages it covers. When an engineer asks a
-question about a device, the assistant searches that model's manual two ways at
-once — by keyword and by meaning — so it finds the right section even when the
-engineer's words differ from the manual's. It quotes those sections with page
-numbers.
+Upload a service manual and it is indexed in overlapping sections, each
+tagged with the pages it covers. When an engineer asks a question about a
+device, the assistant searches that model's manual two ways at once — by
+keyword and by meaning — so it finds the right section even when the
+engineer's words differ from the manual's. It quotes those sections with
+page numbers.
 
-It also looks up how your team fixed the same fault on the same model before,
-and includes what worked. See [asking the assistant](ai/assistant.md) and
+It also looks up how your team repaired the same model before, and includes
+what worked. See [asking the assistant](ai/assistant.md) and
 [service manuals](ai/manuals.md).
 
 ## Roles
